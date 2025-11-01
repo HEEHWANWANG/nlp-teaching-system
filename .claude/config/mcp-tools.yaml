@@ -1,0 +1,7 @@
+mcp_tools:
+  tavily:
+    enabled: true
+  github:
+    enabled: true
+  huggingface:
+    enabled: true

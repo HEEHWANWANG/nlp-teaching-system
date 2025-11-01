@@ -1,0 +1,13 @@
+system:
+  name: NLP Teaching Multi-Agent System
+  version: 1.0.0
+
+pods:
+  - nlp-knowledge
+  - code-loop
+  - latex-doc
+  - tools
+  - teaching
+
+max_iterations: 3
+timeout: 3600
