@@ -1,0 +1,1449 @@
+% \documentclass{article}
+% \usepackage[utf8]{inputenc}
+
+\documentclass{assignment format}
+\usepackage{assignment}
+\usepackage{bm}
+\setcounter{section}{-1}
+\setcounter{subsection}{-1}
+\usepackage[cjk]{kotex}
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{amsfonts}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{physics}
+\usepackage{bbm}
+\usepackage{caption}
+\usepackage{minted}
+\usepackage{todonotes}
+\usepackage{relsize}
+\usepackage{float}
+\usepackage{blindtext}
+\usepackage{multicol}
+\newcommand{\note}[4][]{\todo[author=#2,color=#3,size=\scriptsize,fancyline,caption={},#1]{#4}} % default note settings, used by macros below.
+\newcommand{\mrinmaya}[2][]{\note[#1]{mrinmaya}{blue!40}{#2}}
+
+\usepackage[colorlinks=true]{hyperref}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\alns}[1] {
+	\begin{align*} #1 \end{align*}
+}
+
+\newcommand{\pd}[2] {
+ \frac{\partial #1}{\partial #2}
+}
+\renewcommand{\Re} { \mathbb{R} }
+\newcommand{\btx} { \mathbf{\tilde{x}} }
+\newcommand{\bth} { \mathbf{\tilde{h}} }
+\newcommand{\smx} { \operatorname{softmax} }
+\newcommand{\relu} { \operatorname{ReLU} }
+\newcommand{\sigmoid} { \operatorname{\sigma} }
+\newcommand{\CE} { \operatorname{CE} }
+\newcommand{\byt} { \hat{\by} }
+\newcommand{\yt} { \hat{y} }
+
+\newcommand{\oft}[1]{^{(#1)}}
+\newcommand{\fone}{\ensuremath{F_1}}
+
+\newcommand{\ac}[1]{ {\color{red} \textbf{AC:} #1} }
+\newcommand{\ner}[1]{\textbf{\color{blue} #1}}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\newcommand{\ml}[1]{\textcolor{mygreen}{\textbf{Mina:} #1}}
+% real numbers R symbol
+\newcommand{\Real}{\mathbb{R}}
+
+% encoder hidden
+\newcommand{\henc}{\mathbf{h}^{\text{enc}}}
+\newcommand{\hencfw}[1]{\overrightarrow{\mathbf{h}^{enc}_{#1}}}
+\newcommand{\hencbw}[1]{\overleftarrow{\mathbf{h}^{enc}_{#1}}}
+
+% encoder cell
+\newcommand{\cenc}{\mathbf{c}^{\text{enc}}}
+\newcommand{\cencfw}[1]{\overrightarrow{\mathbf{c}^{enc}_{#1}}}
+\newcommand{\cencbw}[1]{\overleftarrow{\mathbf{c}^{enc}_{#1}}}
+
+% decoder hidden
+\newcommand{\hdec}{\mathbf{h}^{\text{dec}}}
+
+% decoder cell
+\newcommand{\cdec}{\mathbf{c}^{\text{dec}}}
+\newenvironment{answer}{
+    {\bf Answer:} \begingroup\color{red}
+}{\endgroup}%
+\begin{document}
+
+
+\makeheader{\textbf{Due on} Wednesday Nov. 5, 2025 \\ by \textbf{23:59 pm}}{Assignment 3: Recurrent Neural Networks}
+\begin{center}
+%%%%%YOUR NAME HERE%%%%%
+
+\fbox{%
+  \parbox{\textwidth}{
+  \begin{center}
+\large\textbf{Honor Pledge for Graded Assignments}
+\\
+\\
+   \large{ "I, YOUR NAME HERE , affirm that I have not given or received any unauthorized help on this assignment, and that this work is my own."}
+    \end{center}
+}%
+}
+\end{center}
+
+\section{Instructions}
+\begin{itemize}
+\item Total score cannot exceed 100 points. For example, if you score 98 points from non-bonus questions and 3 points are added from bonus questions, your score will be 100 points, not 101 points.
+\item Skeleton codes for problem 3 are at the directory \texttt{/q3}.
+\item Run the \texttt{bash collect\_submission.sh} script to produce your 2000\_00000\_coding.zip file. Please make sure to modify collect\_submission.sh file before running this command. (\textbf{2000\_00000} stands for your student id.)
+\item Modify this tex file into \texttt{2000\_00000\_written.pdf} with your written solutions.
+\item Upload both \texttt{2000\_00000\_coding.zip} and \texttt{2000\_00000\_written.pdf} to etl website.
+\item \textbf{If the submission instructions are not followed, \texttt{4 points} will be deducted.}
+\end{itemize}
+
+\section{Transformer (34 pts)}
+
+
+
+\subsection{Transformer Encoder Block Parameter Counting (23 pts)}
+\begin{center}
+    \includegraphics[width=0.5\textwidth]{transformer.png}
+\end{center}
+Consider a single Transformer encoder block with the following settings:
+\begin{itemize}
+    \item Model dimension: $d_{\text{model}} = 512$
+    \item Multi-Head Attention:
+    \begin{itemize}
+        \item Number of heads: 8
+        \item Dimension of each head (Query, Key, Value): $ 64$
+        \item Output projection dimension: $d_{\text{model}}$
+    \end{itemize}
+    \item Feed-Forward Network (FFN):
+    \begin{itemize}
+        \item First linear: $d_{\text{model}} \to d_{ff} = 2048$
+        \item Second linear: $d_{ff} \to d_{\text{model}}$
+    \end{itemize}
+    \item All linear layers include bias terms.
+    \item Layer Normalization appears twice, each with scale ($\gamma$) and bias ($\beta$) parameters.
+\end{itemize}
+
+\begin{enumerate}[label=(\alph*)]
+    \item Compute the total parameters for Query, Key, and Value projections in Multi-Head Attention.
+    \textbf{(3 pts)}
+\begin{answer}
+For the Query, Key, and Value projections in Multi-Head Attention, we need to calculate the parameters for each projection matrix separately. Each projection transforms the input from $d_{\text{model}}$ dimensions to $d_{\text{model}}$ dimensions.
+
+\textbf{Given:}
+\begin{itemize}
+    \item $d_{\text{model}} = 512$
+    \item All linear layers include bias terms
+\end{itemize}
+
+\textbf{Calculation for each projection:}
+
+Each of the Q, K, V projections is a linear layer with weight matrix $W \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ and bias vector $b \in \mathbb{R}^{d_{\text{model}}}$.
+
+\textbf{Query (Q) projection parameters:}
+\begin{align*}
+\text{Parameters}_Q &= (d_{\text{model}} \times d_{\text{model}}) + d_{\text{model}} \\
+&= (512 \times 512) + 512 \\
+&= 262{,}144 + 512 \\
+&= 262{,}656
+\end{align*}
+
+\textbf{Key (K) projection parameters:}
+\begin{align*}
+\text{Parameters}_K &= (d_{\text{model}} \times d_{\text{model}}) + d_{\text{model}} \\
+&= (512 \times 512) + 512 \\
+&= 262{,}144 + 512 \\
+&= 262{,}656
+\end{align*}
+
+\textbf{Value (V) projection parameters:}
+\begin{align*}
+\text{Parameters}_V &= (d_{\text{model}} \times d_{\text{model}}) + d_{\text{model}} \\
+&= (512 \times 512) + 512 \\
+&= 262{,}144 + 512 \\
+&= 262{,}656
+\end{align*}
+
+\textbf{Total parameters for Q, K, V projections:}
+\begin{align*}
+\text{Total} &= \text{Parameters}_Q + \text{Parameters}_K + \text{Parameters}_V \\
+&= 262{,}656 + 262{,}656 + 262{,}656 \\
+&= \boxed{787{,}968}
+\end{align*}
+\end{answer}
+
+    \item Compute the total parameters of the Multi-Head Attention module when including the output projection as well. \textbf{(3 pts)}
+\begin{answer}
+To compute the total parameters of the entire Multi-Head Attention module, we need to add the output projection $W_O$ to the Q, K, V projections calculated in part (a).
+
+\textbf{Multi-Head Attention Architecture:}
+
+The complete Multi-Head Attention mechanism consists of:
+\begin{enumerate}
+    \item Query projection: $W_Q \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ with bias
+    \item Key projection: $W_K \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ with bias
+    \item Value projection: $W_V \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ with bias
+    \item Output projection: $W_O \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ with bias
+\end{enumerate}
+
+\textbf{What is the output projection?}
+
+After the multi-head attention mechanism computes attention separately for each of the 8 heads (each producing a 64-dimensional output), these head outputs are concatenated to form a vector of dimension $8 \times 64 = 512 = d_{\text{model}}$. The output projection $W_O$ then transforms this concatenated vector back to $d_{\text{model}}$ dimensions, allowing the model to learn how to combine information from different attention heads.
+
+\textbf{Output projection parameters:}
+\begin{align*}
+\text{Parameters}_{W_O} &= (d_{\text{model}} \times d_{\text{model}}) + d_{\text{model}} \\
+&= (512 \times 512) + 512 \\
+&= 262{,}144 + 512 \\
+&= 262{,}656
+\end{align*}
+
+\textbf{Total Multi-Head Attention parameters:}
+\begin{align*}
+\text{Total} &= \text{Parameters}_Q + \text{Parameters}_K + \text{Parameters}_V + \text{Parameters}_{W_O} \\
+&= 262{,}656 + 262{,}656 + 262{,}656 + 262{,}656 \\
+&= 4 \times 262{,}656 \\
+&= \boxed{1{,}050{,}624}
+\end{align*}
+
+\textbf{Summary:} The complete Multi-Head Attention module contains 1,050,624 parameters, consisting of four projection matrices (Q, K, V, and O), each with 262,656 parameters including their bias terms.
+\end{answer}
+
+    \item Compute the parameters of the Feed-Forward Network:
+    \begin{enumerate}[label=\roman*)]
+        \item First linear layer ($512 \to 2048$). \textbf{(2 pts)}
+        \item Second linear layer ($2048 \to 512$). \textbf{(2 pts)}
+        \item Report the total parameters of the FFN. \textbf{(3 pts)}
+    \end{enumerate}
+\begin{answer}
+
+\textbf{What is the Feed-Forward Network (FFN)?}
+
+The Feed-Forward Network is a crucial component of the Transformer encoder block that processes each position's representation independently and identically. After the multi-head attention mechanism aggregates information from different positions, the FFN applies a position-wise transformation to further process the representations. It consists of two linear layers with a non-linear activation (typically ReLU or GELU) in between.
+
+\textbf{FFN Architecture:} $d_{\text{model}} \to d_{ff} \to d_{\text{model}}$ (i.e., $512 \to 2048 \to 512$)
+
+\medskip
+
+\textbf{(i) First linear layer parameters ($512 \to 2048$):}
+
+The first linear layer expands the representation from $d_{\text{model}} = 512$ dimensions to $d_{ff} = 2048$ dimensions.
+
+\begin{itemize}
+    \item Weight matrix: $W_1 \in \mathbb{R}^{512 \times 2048}$
+    \item Bias vector: $b_1 \in \mathbb{R}^{2048}$
+\end{itemize}
+
+\begin{align*}
+\text{Parameters}_{\text{FFN Layer 1}} &= (d_{\text{model}} \times d_{ff}) + d_{ff} \\
+&= (512 \times 2048) + 2048 \\
+&= 1{,}048{,}576 + 2{,}048 \\
+&= \boxed{1{,}050{,}624}
+\end{align*}
+
+\medskip
+
+\textbf{(ii) Second linear layer parameters ($2048 \to 512$):}
+
+The second linear layer projects the expanded representation back down from $d_{ff} = 2048$ dimensions to $d_{\text{model}} = 512$ dimensions.
+
+\begin{itemize}
+    \item Weight matrix: $W_2 \in \mathbb{R}^{2048 \times 512}$
+    \item Bias vector: $b_2 \in \mathbb{R}^{512}$
+\end{itemize}
+
+\begin{align*}
+\text{Parameters}_{\text{FFN Layer 2}} &= (d_{ff} \times d_{\text{model}}) + d_{\text{model}} \\
+&= (2048 \times 512) + 512 \\
+&= 1{,}048{,}576 + 512 \\
+&= \boxed{1{,}049{,}088}
+\end{align*}
+
+\medskip
+
+\textbf{(iii) Total FFN parameters:}
+
+The total parameters in the Feed-Forward Network is the sum of both linear layers:
+
+\begin{align*}
+\text{Total}_{\text{FFN}} &= \text{Parameters}_{\text{FFN Layer 1}} + \text{Parameters}_{\text{FFN Layer 2}} \\
+&= 1{,}050{,}624 + 1{,}049{,}088 \\
+&= \boxed{2{,}099{,}712}
+\end{align*}
+
+\medskip
+
+\textbf{Summary Table:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Layer} & \textbf{Dimensions} & \textbf{Weight Params} & \textbf{Total Params} \\
+\hline
+FFN Layer 1 & $512 \to 2048$ & $512 \times 2048 = 1{,}048{,}576$ & $1{,}050{,}624$ \\
+FFN Layer 2 & $2048 \to 512$ & $2048 \times 512 = 1{,}048{,}576$ & $1{,}049{,}088$ \\
+\hline
+\textbf{Total FFN} & & & \textbf{2,099,712} \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Key Insight:} The FFN contributes approximately 2.1 million parameters to the Transformer encoder block, which is roughly twice as many parameters as the Multi-Head Attention module (1,050,624 parameters). This expansion to $d_{ff} = 4 \times d_{\text{model}}$ is a common design choice in Transformers, providing additional representational capacity for each position.
+
+\end{answer}
+
+    \item Compute the total parameters of the two LayerNorm layers combined. \textbf{(3 pts)}
+\begin{answer}
+
+\textbf{What is Layer Normalization (LayerNorm)?}
+
+Layer Normalization is a normalization technique that normalizes the inputs across the features (i.e., across the $d_{\text{model}}$ dimension) for each individual sample in a batch. Unlike Batch Normalization which normalizes across the batch dimension, LayerNorm normalizes across the feature dimension, making it particularly suitable for sequential models like Transformers where batch sizes can vary.
+
+\medskip
+
+\textbf{LayerNorm Operation:}
+
+For an input vector $\mathbf{x} \in \mathbb{R}^{d_{\text{model}}}$, LayerNorm computes:
+\begin{align*}
+\text{LayerNorm}(\mathbf{x}) &= \gamma \odot \frac{\mathbf{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
+\end{align*}
+
+where:
+\begin{itemize}
+    \item $\mu$ is the mean of $\mathbf{x}$ across the feature dimension
+    \item $\sigma^2$ is the variance of $\mathbf{x}$ across the feature dimension
+    \item $\epsilon$ is a small constant for numerical stability (not a learnable parameter)
+    \item $\gamma \in \mathbb{R}^{d_{\text{model}}}$ is the \textbf{scale parameter} (learnable)
+    \item $\beta \in \mathbb{R}^{d_{\text{model}}}$ is the \textbf{shift/bias parameter} (learnable)
+    \item $\odot$ denotes element-wise multiplication
+\end{itemize}
+
+\medskip
+
+\textbf{Learnable Parameters in LayerNorm:}
+
+Each LayerNorm layer has exactly two sets of learnable parameters:
+\begin{itemize}
+    \item $\gamma$ (scale/gain): Controls the scale of the normalized output, initialized to ones
+    \item $\beta$ (shift/bias): Controls the shift of the normalized output, initialized to zeros
+\end{itemize}
+
+Both $\gamma$ and $\beta$ have the same dimensionality as the input, which is $d_{\text{model}} = 512$.
+
+\medskip
+
+\textbf{Parameters for one LayerNorm layer:}
+
+\begin{align*}
+\text{Parameters}_{\text{LayerNorm}} &= |\gamma| + |\beta| \\
+&= d_{\text{model}} + d_{\text{model}} \\
+&= 512 + 512 \\
+&= 1{,}024
+\end{align*}
+
+\medskip
+
+\textbf{Total parameters for two LayerNorm layers:}
+
+In a Transformer encoder block, LayerNorm appears twice:
+\begin{enumerate}
+    \item After the Multi-Head Attention sublayer
+    \item After the Feed-Forward Network sublayer
+\end{enumerate}
+
+\begin{align*}
+\text{Total}_{\text{LayerNorm}} &= 2 \times \text{Parameters}_{\text{LayerNorm}} \\
+&= 2 \times 1{,}024 \\
+&= \boxed{2{,}048}
+\end{align*}
+
+\medskip
+
+\textbf{Summary:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Component} & \textbf{$\gamma$ params} & \textbf{$\beta$ params} & \textbf{Total params} \\
+\hline
+LayerNorm 1 (after Attention) & 512 & 512 & 1,024 \\
+LayerNorm 2 (after FFN) & 512 & 512 & 1,024 \\
+\hline
+\textbf{Total} & \textbf{1,024} & \textbf{1,024} & \textbf{2,048} \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+
+\textbf{Key Insight:} Despite being applied twice in the encoder block, LayerNorm contributes only 2,048 parameters - a negligible amount compared to the Multi-Head Attention (1,050,624 parameters) and Feed-Forward Network (2,099,712 parameters). This makes LayerNorm computationally efficient while providing crucial normalization benefits for training stability.
+
+\end{answer}
+
+    \item Extended Case: Suppose the architecture is modified as follows:
+    \begin{itemize}
+        \item The Feed-Forward dimension is expanded to $d_{ff} = 4 \times d_{\text{model}} = 4096$.
+        \item The number of attention heads is increased to 16, while $d_{\text{model}} = 512$ remains unchanged.
+        \item All other conditions remain the same.
+    \end{itemize}
+    Recalculate the total number of parameters under these new settings, and compute the percentage increase compared to the original architecture. \textbf{(7 pts)}
+\begin{answer}
+
+\textbf{Original Architecture Summary (from parts a-d):}
+
+Before calculating the new configuration, let's first establish the baseline from the original architecture:
+
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Component} & \textbf{Parameters} \\
+\hline
+Multi-Head Attention (8 heads) & 1,050,624 \\
+Feed-Forward Network ($d_{ff} = 2048$) & 2,099,712 \\
+LayerNorm (2 layers) & 2,048 \\
+\hline
+\textbf{Total (Original)} & \textbf{3,152,384} \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+
+\textbf{Modified Architecture Configuration:}
+
+Now we need to recalculate parameters with:
+\begin{itemize}
+    \item Number of attention heads: $16$ (changed from $8$)
+    \item Feed-forward dimension: $d_{ff} = 4096$ (changed from $2048$)
+    \item Model dimension: $d_{\text{model}} = 512$ (unchanged)
+    \item All linear layers include bias terms (unchanged)
+\end{itemize}
+
+\medskip
+
+\textbf{Component 1: Multi-Head Attention with 16 heads}
+
+\textbf{Critical Insight:} The number of attention heads does \textit{not} affect the total parameter count in Multi-Head Attention!
+
+Why? The projection matrices $W_Q, W_K, W_V, W_O$ all operate on $d_{\text{model}}$-dimensional vectors, regardless of the number of heads. The splitting into multiple heads happens \textit{after} the projections, through reshaping operations that involve no additional parameters.
+
+\begin{itemize}
+    \item $W_Q \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$: Projects input to query space
+    \item $W_K \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$: Projects input to key space
+    \item $W_V \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$: Projects input to value space
+    \item $W_O \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$: Projects concatenated heads to output
+\end{itemize}
+
+The head dimension changes ($d_k = d_{\text{model}} / \text{num\_heads} = 512/16 = 32$ instead of $512/8 = 64$), but this is just a reshape operation with no additional parameters.
+
+\begin{align*}
+\text{Parameters}_{\text{MHA (16 heads)}} &= 4 \times (d_{\text{model}} \times d_{\text{model}} + d_{\text{model}}) \\
+&= 4 \times (512 \times 512 + 512) \\
+&= 4 \times 262{,}656 \\
+&= \boxed{1{,}050{,}624} \quad \text{(unchanged)}
+\end{align*}
+
+\medskip
+
+\textbf{Component 2: Feed-Forward Network with $d_{ff} = 4096$}
+
+Here the parameter count \textit{does} change significantly, as $d_{ff}$ directly determines the size of weight matrices.
+
+\textbf{First FFN layer ($512 \to 4096$):}
+\begin{align*}
+\text{Parameters}_{\text{FFN Layer 1}} &= (d_{\text{model}} \times d_{ff}) + d_{ff} \\
+&= (512 \times 4096) + 4096 \\
+&= 2{,}097{,}152 + 4{,}096 \\
+&= 2{,}101{,}248
+\end{align*}
+
+\textbf{Second FFN layer ($4096 \to 512$):}
+\begin{align*}
+\text{Parameters}_{\text{FFN Layer 2}} &= (d_{ff} \times d_{\text{model}}) + d_{\text{model}} \\
+&= (4096 \times 512) + 512 \\
+&= 2{,}097{,}152 + 512 \\
+&= 2{,}097{,}664
+\end{align*}
+
+\textbf{Total FFN parameters:}
+\begin{align*}
+\text{Total}_{\text{FFN (new)}} &= 2{,}101{,}248 + 2{,}097{,}664 \\
+&= \boxed{4{,}198{,}912}
+\end{align*}
+
+\medskip
+
+\textbf{Component 3: LayerNorm (unchanged)}
+
+LayerNorm parameters depend only on $d_{\text{model}}$, which remains $512$:
+
+\begin{align*}
+\text{Total}_{\text{LayerNorm}} &= 2 \times (d_{\text{model}} + d_{\text{model}}) \\
+&= 2 \times 1{,}024 \\
+&= \boxed{2{,}048} \quad \text{(unchanged)}
+\end{align*}
+
+\medskip
+
+\textbf{Total Parameters in Modified Architecture:}
+
+\begin{align*}
+\text{Total}_{\text{new}} &= \text{MHA} + \text{FFN} + \text{LayerNorm} \\
+&= 1{,}050{,}624 + 4{,}198{,}912 + 2{,}048 \\
+&= \boxed{5{,}251{,}584}
+\end{align*}
+
+\medskip
+
+\textbf{Percentage Increase Calculation:}
+
+\begin{align*}
+\text{Percentage Increase} &= \frac{\text{Total}_{\text{new}} - \text{Total}_{\text{original}}}{\text{Total}_{\text{original}}} \times 100\% \\
+&= \frac{5{,}251{,}584 - 3{,}152{,}384}{3{,}152{,}384} \times 100\% \\
+&= \frac{2{,}099{,}200}{3{,}152{,}384} \times 100\% \\
+&= 0.6660 \times 100\% \\
+&= \boxed{66.60\%}
+\end{align*}
+
+\medskip
+
+\textbf{Comprehensive Summary:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Component} & \textbf{Original} & \textbf{Modified} & \textbf{Change} \\
+\hline
+Multi-Head Attention & 1,050,624 & 1,050,624 & $0\%$ \\
+Feed-Forward Network & 2,099,712 & 4,198,912 & $+100\%$ \\
+LayerNorm & 2,048 & 2,048 & $0\%$ \\
+\hline
+\textbf{Total} & \textbf{3,152,384} & \textbf{5,251,584} & \textbf{+66.60\%} \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+
+\textbf{Key Insights and Analysis:}
+
+\begin{enumerate}
+    \item \textbf{Why does increasing heads from 8 to 16 not change parameter count?}
+
+    The multi-head mechanism splits the $d_{\text{model}}$ dimension into $h$ heads of dimension $d_k = d_{\text{model}}/h$ each. This is purely a computational reorganization that happens after the projection matrices. The projections $W_Q, W_K, W_V$ always map from $d_{\text{model}}$ to $d_{\text{model}}$, and $W_O$ always maps from $d_{\text{model}}$ (concatenated heads) back to $d_{\text{model}}$, regardless of $h$.
+
+    \item \textbf{Why does doubling $d_{ff}$ exactly double FFN parameters?}
+
+    The FFN has two linear transformations: $512 \to d_{ff}$ and $d_{ff} \to 512$. Both transformations are linear in $d_{ff}$:
+    \begin{itemize}
+        \item Layer 1: $512 \times d_{ff} + d_{ff}$ parameters
+        \item Layer 2: $d_{ff} \times 512 + 512$ parameters
+    \end{itemize}
+    When $d_{ff}$ doubles from 2048 to 4096, the parameter count approximately doubles (exactly doubles for the weight matrices, with only a small bias term difference).
+
+    \item \textbf{Parameter distribution in the modified architecture:}
+
+    In the new configuration:
+    \begin{itemize}
+        \item FFN now dominates: $79.95\%$ of total parameters (vs $66.61\%$ originally)
+        \item MHA contribution drops: $20.00\%$ of total (vs $33.33\%$ originally)
+        \item LayerNorm remains negligible: $0.04\%$ of total
+    \end{itemize}
+
+    \item \textbf{Trade-offs:}
+    \begin{itemize}
+        \item \textbf{Capacity:} Larger $d_{ff}$ provides more representational power for position-wise transformations
+        \item \textbf{Computation:} Training and inference time increase proportionally with parameter count
+        \item \textbf{Memory:} GPU memory requirements increase by 66.60\%
+        \item \textbf{Overfitting risk:} More parameters require more training data to generalize well
+    \end{itemize}
+\end{enumerate}
+
+\end{answer}
+\end{enumerate}
+
+\subsection{Dot-Product Attention Exercise (11 pts)}
+A single-head Transformer processes the sentence \([\,\texttt{cat},\,\texttt{on},\,\texttt{the},\,\texttt{mat}\,]\).
+We compute scaled dot-product attention \emph{from the perspective of the query token \(\texttt{cat}\)}.
+Key/query/value dimension is \(d_k=d_v=3\), so the scaling factor is \(\sqrt{3}\approx 1.732\).
+Round final answers to \(3\) decimals.
+
+You may use code (e.g., Python/NumPy, MATLAB, or R) for all calculations.
+% ---------- Updated Tokens & Weights ----------
+\paragraph{Token embeddings (row vectors).}
+Let the sentence be \([\,\texttt{cat},\,\texttt{on},\,\texttt{the},\,\texttt{mat}\,]\) with
+\[
+\begin{aligned}
+e_{\texttt{cat}}&=[\,0.8,\ 0.1,\ 0.5\,],\qquad
+e_{\texttt{on}}=[\,-0.2,\ 0.3,\ 0.0\,],\\
+e_{\texttt{the}}&=[\,0.1,\ -0.1,\ -0.2\,],\qquad
+e_{\texttt{mat}}=[\,2.4,\ 0.3,\ 1.6\,].
+\end{aligned}
+\]
+(Values are chosen so that \(\texttt{cat}\) tends to attend strongly to \(\texttt{mat}\).)
+
+\paragraph{Weight matrices.}
+We use row-vector convention (\(Q=E W_Q\), etc.). Let
+\[
+W_Q=
+\begin{bmatrix}
+1&0&0\\
+0&0&1\\
+0&1&0
+\end{bmatrix},\qquad
+W_K=I_3,\qquad
+W_V=
+\begin{bmatrix}
+0.5&0&0\\
+0&1&0\\
+0&0&0.5
+\end{bmatrix}.
+\]
+Thus \(d_k=3\) and the usual scaling factor is \(\sqrt{d_k}=\sqrt{3}\approx 1.732\).
+Unless otherwise noted, round final numeric answers to \textbf{3 decimal places}.
+
+\begin{enumerate}[label=(\alph*),leftmargin=*,itemsep=0.6em]
+
+  \item {Compute \(Q\), \(K\), and \(V\). (3 pts)}\\
+  Using the definitions \(Q=E W_Q\), \(K=E W_K\), \(V=E W_V\) with the matrices above, compute
+  \[
+  Q_{\texttt{cat}}=e_{\texttt{cat}}W_Q,\quad
+  K_{w}=e_{w}W_K,\quad
+  V_{w}=e_{w}W_V\quad (w\in\{\texttt{cat,on,the,mat}\}).
+  \]
+
+
+  \begin{answer}
+We compute the query, key, and value vectors by multiplying each token embedding with the corresponding weight matrix.
+
+\medskip
+
+\textbf{Query Vector for \texttt{cat}:}
+
+\begin{align*}
+Q_{\texttt{cat}} &= e_{\texttt{cat}} W_Q \\
+&= [\,0.8,\ 0.1,\ 0.5\,] \begin{bmatrix} 1&0&0\\ 0&0&1\\ 0&1&0 \end{bmatrix} \\
+&= [\,0.8 \cdot 1 + 0.1 \cdot 0 + 0.5 \cdot 0,\ 0.8 \cdot 0 + 0.1 \cdot 0 + 0.5 \cdot 1,\ 0.8 \cdot 0 + 0.1 \cdot 1 + 0.5 \cdot 0\,] \\
+&= \boxed{[\,0.8,\ 0.5,\ 0.1\,]}
+\end{align*}
+
+\medskip
+
+\textbf{Key Vectors (with $W_K = I_3$):}
+
+Since $W_K = I_3$ (identity matrix), the key vectors are identical to the embeddings:
+
+\begin{align*}
+K_{\texttt{cat}} &= e_{\texttt{cat}} W_K = [\,0.8,\ 0.1,\ 0.5\,] \cdot I_3 = \boxed{[\,0.8,\ 0.1,\ 0.5\,]} \\
+K_{\texttt{on}} &= e_{\texttt{on}} W_K = [\,-0.2,\ 0.3,\ 0.0\,] \cdot I_3 = \boxed{[\,-0.2,\ 0.3,\ 0.0\,]} \\
+K_{\texttt{the}} &= e_{\texttt{the}} W_K = [\,0.1,\ -0.1,\ -0.2\,] \cdot I_3 = \boxed{[\,0.1,\ -0.1,\ -0.2\,]} \\
+K_{\texttt{mat}} &= e_{\texttt{mat}} W_K = [\,2.4,\ 0.3,\ 1.6\,] \cdot I_3 = \boxed{[\,2.4,\ 0.3,\ 1.6\,]}
+\end{align*}
+
+\medskip
+
+\textbf{Value Vectors:}
+
+\begin{align*}
+V_{\texttt{cat}} &= e_{\texttt{cat}} W_V \\
+&= [\,0.8,\ 0.1,\ 0.5\,] \begin{bmatrix} 0.5&0&0\\ 0&1&0\\ 0&0&0.5 \end{bmatrix} \\
+&= [\,0.8 \cdot 0.5,\ 0.1 \cdot 1,\ 0.5 \cdot 0.5\,] \\
+&= \boxed{[\,0.4,\ 0.1,\ 0.25\,]}
+\end{align*}
+
+\begin{align*}
+V_{\texttt{on}} &= e_{\texttt{on}} W_V \\
+&= [\,-0.2,\ 0.3,\ 0.0\,] \begin{bmatrix} 0.5&0&0\\ 0&1&0\\ 0&0&0.5 \end{bmatrix} \\
+&= [\,-0.2 \cdot 0.5,\ 0.3 \cdot 1,\ 0.0 \cdot 0.5\,] \\
+&= \boxed{[\,-0.1,\ 0.3,\ 0.0\,]}
+\end{align*}
+
+\begin{align*}
+V_{\texttt{the}} &= e_{\texttt{the}} W_V \\
+&= [\,0.1,\ -0.1,\ -0.2\,] \begin{bmatrix} 0.5&0&0\\ 0&1&0\\ 0&0&0.5 \end{bmatrix} \\
+&= [\,0.1 \cdot 0.5,\ -0.1 \cdot 1,\ -0.2 \cdot 0.5\,] \\
+&= \boxed{[\,0.05,\ -0.1,\ -0.1\,]}
+\end{align*}
+
+\begin{align*}
+V_{\texttt{mat}} &= e_{\texttt{mat}} W_V \\
+&= [\,2.4,\ 0.3,\ 1.6\,] \begin{bmatrix} 0.5&0&0\\ 0&1&0\\ 0&0&0.5 \end{bmatrix} \\
+&= [\,2.4 \cdot 0.5,\ 0.3 \cdot 1,\ 1.6 \cdot 0.5\,] \\
+&= \boxed{[\,1.2,\ 0.3,\ 0.8\,]}
+\end{align*}
+
+\medskip
+
+\textbf{Summary Table:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Token} & \textbf{Query $Q$} & \textbf{Key $K$} & \textbf{Value $V$} \\
+\hline
+\texttt{cat} & $[\,0.8,\ 0.5,\ 0.1\,]$ & $[\,0.8,\ 0.1,\ 0.5\,]$ & $[\,0.4,\ 0.1,\ 0.25\,]$ \\
+\texttt{on} & --- & $[\,-0.2,\ 0.3,\ 0.0\,]$ & $[\,-0.1,\ 0.3,\ 0.0\,]$ \\
+\texttt{the} & --- & $[\,0.1,\ -0.1,\ -0.2\,]$ & $[\,0.05,\ -0.1,\ -0.1\,]$ \\
+\texttt{mat} & --- & $[\,2.4,\ 0.3,\ 1.6\,]$ & $[\,1.2,\ 0.3,\ 0.8\,]$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\end{answer}
+
+  \item {Compute Attention Scores (Raw and Scaled). (3 pts)}\\
+  For the query token \(\texttt{cat}\), first compute the \emph{unscaled} logits against \emph{all} targets
+  \(w\in\{\texttt{cat,on,the,mat}\}\)
+  \[
+s(\texttt{cat}\!\to\!w)
+\;=\;
+\langle Q_{\texttt{cat}},\, K_w\rangle
+\;=\;
+Q_{\texttt{cat}}\,K_w^{\top}.
+\]
+  Then convert to \emph{scaled} logits using \(d_k=3\):
+  \[
+    \tilde{s}(\texttt{cat}\!\to\!w)\;=\;\frac{s(\texttt{cat}\!\to\!w)}{\sqrt{3}}\,,\qquad \sqrt{3}\approx 1.732.
+  \]
+
+
+  \begin{answer}
+We compute the attention scores by taking the dot product between the query vector $Q_{\texttt{cat}}$ and each key vector $K_w$.
+
+\medskip
+
+\textbf{Unscaled Attention Scores (Raw Dot Products):}
+
+From part (a), we have $Q_{\texttt{cat}} = [\,0.8,\ 0.5,\ 0.1\,]$.
+
+\begin{align*}
+s(\texttt{cat} \to \texttt{cat}) &= Q_{\texttt{cat}} \cdot K_{\texttt{cat}} \\
+&= [\,0.8,\ 0.5,\ 0.1\,] \cdot [\,0.8,\ 0.1,\ 0.5\,]^{\top} \\
+&= 0.8 \times 0.8 + 0.5 \times 0.1 + 0.1 \times 0.5 \\
+&= 0.64 + 0.05 + 0.05 \\
+&= \boxed{0.740}
+\end{align*}
+
+\begin{align*}
+s(\texttt{cat} \to \texttt{on}) &= Q_{\texttt{cat}} \cdot K_{\texttt{on}} \\
+&= [\,0.8,\ 0.5,\ 0.1\,] \cdot [\,-0.2,\ 0.3,\ 0.0\,]^{\top} \\
+&= 0.8 \times (-0.2) + 0.5 \times 0.3 + 0.1 \times 0.0 \\
+&= -0.16 + 0.15 + 0.0 \\
+&= \boxed{-0.010}
+\end{align*}
+
+\begin{align*}
+s(\texttt{cat} \to \texttt{the}) &= Q_{\texttt{cat}} \cdot K_{\texttt{the}} \\
+&= [\,0.8,\ 0.5,\ 0.1\,] \cdot [\,0.1,\ -0.1,\ -0.2\,]^{\top} \\
+&= 0.8 \times 0.1 + 0.5 \times (-0.1) + 0.1 \times (-0.2) \\
+&= 0.08 - 0.05 - 0.02 \\
+&= \boxed{0.010}
+\end{align*}
+
+\begin{align*}
+s(\texttt{cat} \to \texttt{mat}) &= Q_{\texttt{cat}} \cdot K_{\texttt{mat}} \\
+&= [\,0.8,\ 0.5,\ 0.1\,] \cdot [\,2.4,\ 0.3,\ 1.6\,]^{\top} \\
+&= 0.8 \times 2.4 + 0.5 \times 0.3 + 0.1 \times 1.6 \\
+&= 1.92 + 0.15 + 0.16 \\
+&= \boxed{2.230}
+\end{align*}
+
+\medskip
+
+\textbf{Scaled Attention Scores:}
+
+We divide each raw score by $\sqrt{d_k} = \sqrt{3} \approx 1.732$:
+
+\begin{align*}
+\tilde{s}(\texttt{cat} \to \texttt{cat}) &= \frac{s(\texttt{cat} \to \texttt{cat})}{\sqrt{3}} = \frac{0.740}{1.732} = \boxed{0.427}
+\end{align*}
+
+\begin{align*}
+\tilde{s}(\texttt{cat} \to \texttt{on}) &= \frac{s(\texttt{cat} \to \texttt{on})}{\sqrt{3}} = \frac{-0.010}{1.732} = \boxed{-0.006}
+\end{align*}
+
+\begin{align*}
+\tilde{s}(\texttt{cat} \to \texttt{the}) &= \frac{s(\texttt{cat} \to \texttt{the})}{\sqrt{3}} = \frac{0.010}{1.732} = \boxed{0.006}
+\end{align*}
+
+\begin{align*}
+\tilde{s}(\texttt{cat} \to \texttt{mat}) &= \frac{s(\texttt{cat} \to \texttt{mat})}{\sqrt{3}} = \frac{2.230}{1.732} = \boxed{1.288}
+\end{align*}
+
+\medskip
+
+\textbf{Summary Table:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Target Token} & \textbf{Raw Score $s$} & \textbf{Scaled Score $\tilde{s}$} \\
+\hline
+\texttt{cat} & 0.740 & 0.427 \\
+\texttt{on} & -0.010 & -0.006 \\
+\texttt{the} & 0.010 & 0.006 \\
+\texttt{mat} & 2.230 & 1.288 \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Observation:} The query \texttt{cat} has the highest attention score with \texttt{mat} (2.230 raw, 1.288 scaled), indicating strong alignment between these tokens, as designed by the problem setup.
+
+\end{answer}
+
+  \item {Compute Normalized Attention Distribution (Softmax)(3 pts)}\\
+  Apply softmax over the \emph{scaled} logits from (b) to obtain the attention distribution
+  \[
+  \alpha_{\texttt{cat}\to w}
+  \;=\;
+  \frac{\exp\!\big(\tilde{s}(\texttt{cat}\!\to\!w)\big)}
+       {\sum_{u\in\{\texttt{cat,on,the,mat}\}}\exp\!\big(\tilde{s}(\texttt{cat}\!\to\!u)\big)}\,,
+  \]
+  for each \(w\in\{\texttt{cat,on,the,mat}\}\).
+
+
+  \begin{answer}
+We apply the softmax function to the scaled attention scores from part (b) to obtain a probability distribution.
+
+\medskip
+
+\textbf{Scaled Scores from Part (b):}
+\begin{itemize}
+    \item $\tilde{s}(\texttt{cat} \to \texttt{cat}) = 0.427$
+    \item $\tilde{s}(\texttt{cat} \to \texttt{on}) = -0.006$
+    \item $\tilde{s}(\texttt{cat} \to \texttt{the}) = 0.006$
+    \item $\tilde{s}(\texttt{cat} \to \texttt{mat}) = 1.288$
+\end{itemize}
+
+\medskip
+
+\textbf{Step 1: Compute Exponentials}
+
+\begin{align*}
+\exp(\tilde{s}(\texttt{cat} \to \texttt{cat})) &= \exp(0.427) = 1.532 \\
+\exp(\tilde{s}(\texttt{cat} \to \texttt{on})) &= \exp(-0.006) = 0.994 \\
+\exp(\tilde{s}(\texttt{cat} \to \texttt{the})) &= \exp(0.006) = 1.006 \\
+\exp(\tilde{s}(\texttt{cat} \to \texttt{mat})) &= \exp(1.288) = 3.625
+\end{align*}
+
+\medskip
+
+\textbf{Step 2: Compute Sum of Exponentials}
+
+\begin{align*}
+Z &= \sum_{w \in \{\texttt{cat,on,the,mat}\}} \exp(\tilde{s}(\texttt{cat} \to w)) \\
+&= 1.532 + 0.994 + 1.006 + 3.625 \\
+&= 7.157
+\end{align*}
+
+\medskip
+
+\textbf{Step 3: Compute Softmax (Attention Weights)}
+
+\begin{align*}
+\alpha_{\texttt{cat} \to \texttt{cat}} &= \frac{\exp(\tilde{s}(\texttt{cat} \to \texttt{cat}))}{Z} = \frac{1.532}{7.157} = \boxed{0.214}
+\end{align*}
+
+\begin{align*}
+\alpha_{\texttt{cat} \to \texttt{on}} &= \frac{\exp(\tilde{s}(\texttt{cat} \to \texttt{on}))}{Z} = \frac{0.994}{7.157} = \boxed{0.139}
+\end{align*}
+
+\begin{align*}
+\alpha_{\texttt{cat} \to \texttt{the}} &= \frac{\exp(\tilde{s}(\texttt{cat} \to \texttt{the}))}{Z} = \frac{1.006}{7.157} = \boxed{0.141}
+\end{align*}
+
+\begin{align*}
+\alpha_{\texttt{cat} \to \texttt{mat}} &= \frac{\exp(\tilde{s}(\texttt{cat} \to \texttt{mat}))}{Z} = \frac{3.625}{7.157} = \boxed{0.506}
+\end{align*}
+
+\medskip
+
+\textbf{Verification:} Sum of attention weights should equal 1:
+\begin{align*}
+0.214 + 0.139 + 0.141 + 0.506 = 1.000 \quad \checkmark
+\end{align*}
+
+\medskip
+
+\textbf{Summary Table:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Target} & \textbf{Scaled Score $\tilde{s}$} & \textbf{$\exp(\tilde{s})$} & \textbf{Attention $\alpha$} \\
+\hline
+\texttt{cat} & 0.427 & 1.532 & 0.214 \\
+\texttt{on} & -0.006 & 0.994 & 0.139 \\
+\texttt{the} & 0.006 & 1.006 & 0.141 \\
+\texttt{mat} & 1.288 & 3.625 & 0.506 \\
+\hline
+\multicolumn{3}{|r|}{\textbf{Sum:}} & \textbf{1.000} \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+
+\textbf{Interpretation:}
+
+The attention distribution shows that when processing the token \texttt{cat}, the model:
+\begin{itemize}
+    \item Attends most strongly to \texttt{mat} (50.6\% of attention)
+    \item Gives moderate attention to itself \texttt{cat} (21.4\%)
+    \item Distributes the remaining attention roughly equally between \texttt{on} (13.9\%) and \texttt{the} (14.1\%)
+\end{itemize}
+
+This pattern aligns with the problem design where \texttt{cat} was intended to attend strongly to \texttt{mat}, as reflected in the high raw attention score (2.230) between these tokens.
+
+\end{answer}
+
+\item {Compare Scaling Effects: Scaled vs. Unscaled Attention. (2 pts)}\\
+Let \(\alpha^{(\mathrm{scaled})}\) be the softmax over the \emph{scaled} logits from (b), and let
+\(\alpha^{(\mathrm{raw})}\) be the softmax over the \emph{unscaled} logits from (b).
+\[
+\alpha^{(\mathrm{scaled})}_{\texttt{cat}\to w}
+=\frac{e^{\tilde{s}(\texttt{cat}\!\to\!w)}}{\sum_{u} e^{\tilde{s}(\texttt{cat}\!\to\!u)}},
+\qquad
+\alpha^{(\mathrm{raw})}_{\texttt{cat}\to w}
+=\frac{e^{s(\texttt{cat}\!\to\!w)}}{\sum_{u} e^{s(\texttt{cat}\!\to\!u)}}.
+\]
+
+Explain the effect of scaling on the resulting attention distribution.
+
+
+
+  \begin{answer}
+To understand the effect of scaling, let's compute the unscaled attention distribution and compare it with the scaled version from part (c).
+
+\medskip
+
+\textbf{Unscaled Attention Distribution:}
+
+Using the raw scores from part (b): $s(\texttt{cat} \to \texttt{cat}) = 0.740$, $s(\texttt{cat} \to \texttt{on}) = -0.010$, $s(\texttt{cat} \to \texttt{the}) = 0.010$, $s(\texttt{cat} \to \texttt{mat}) = 2.230$.
+
+\textbf{Step 1: Exponentials of raw scores}
+\begin{align*}
+\exp(0.740) &= 2.096 \\
+\exp(-0.010) &= 0.990 \\
+\exp(0.010) &= 1.010 \\
+\exp(2.230) &= 9.300
+\end{align*}
+
+\textbf{Step 2: Sum and normalization}
+\begin{align*}
+Z_{\text{raw}} &= 2.096 + 0.990 + 1.010 + 9.300 = 13.396 \\
+\alpha^{(\text{raw})}_{\texttt{cat} \to \texttt{cat}} &= \frac{2.096}{13.396} = 0.156 \\
+\alpha^{(\text{raw})}_{\texttt{cat} \to \texttt{on}} &= \frac{0.990}{13.396} = 0.074 \\
+\alpha^{(\text{raw})}_{\texttt{cat} \to \texttt{the}} &= \frac{1.010}{13.396} = 0.075 \\
+\alpha^{(\text{raw})}_{\texttt{cat} \to \texttt{mat}} &= \frac{9.300}{13.396} = 0.694
+\end{align*}
+
+\medskip
+
+\textbf{Comparison:}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Target} & \textbf{Raw $\alpha^{(\text{raw})}$} & \textbf{Scaled $\alpha^{(\text{scaled})}$} & \textbf{Difference} \\
+\hline
+\texttt{cat} & 0.156 & 0.214 & +0.058 \\
+\texttt{on} & 0.074 & 0.139 & +0.065 \\
+\texttt{the} & 0.075 & 0.141 & +0.066 \\
+\texttt{mat} & 0.694 & 0.506 & -0.188 \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+
+\textbf{Key Effects of Scaling:}
+
+\begin{enumerate}
+    \item \textbf{Reduced Saturation:} Without scaling (raw), the attention to \texttt{mat} is extremely dominant at 69.4\%, while the scaled version distributes attention more evenly at 50.6\%. This demonstrates that scaling prevents the softmax from becoming overly concentrated on a single position.
+
+    \item \textbf{Smoother Distribution:} The scaled attention weights are less extreme. The difference between the highest attention (to \texttt{mat}) and other positions is smaller with scaling, leading to a more balanced distribution across all tokens.
+
+    \item \textbf{Gradient Stability:} During training, unscaled large dot products push the softmax into saturation regions where gradients become very small (vanishing gradient problem). By dividing by $\sqrt{d_k}$, we keep the dot products in a reasonable range where softmax gradients remain meaningful.
+
+    \item \textbf{Dimension Independence:} As $d_k$ increases, dot products naturally grow in magnitude. Scaling by $\sqrt{d_k}$ compensates for this growth, ensuring that the attention mechanism behaves consistently regardless of the embedding dimension. Without scaling, higher-dimensional models would have more concentrated attention distributions.
+
+    \item \textbf{Mathematical Intuition:} For random vectors with independent components, the variance of their dot product scales with $d_k$. Dividing by $\sqrt{d_k}$ normalizes this variance, keeping the softmax inputs in a stable range.
+\end{enumerate}
+
+\medskip
+
+\textbf{Conclusion:} Scaling by $\sqrt{d_k}$ is crucial for maintaining stable attention distributions and gradients, especially in high-dimensional models. It prevents extreme concentration of attention weights, promotes more balanced information aggregation, and ensures consistent training dynamics across different model sizes.
+
+\end{answer}
+
+
+
+
+\end{enumerate}
+
+
+
+
+
+\section{Backprop on LSTM (12 pts)}
+In class, we learned about Long Short-Term Memory (LSTM) model. Recall the units of an LSTM cell are defined as
+\begin{align*}
+i_{t}=\sigma(W^{(i)}x_{t} + U^{(i)}h_{t-1})\\
+f_{t}=\sigma(W^{(f)}x_{t} + U^{(f)}h_{t-1})\\
+o_{t}=\sigma(W^{(o)}x_{t} + U^{(o)}h_{t-1})\\
+\tilde{c_{t}} = tanh(W^{(c)}x_{t} + U^{(c)}h_{t-1})\\
+c_{t} = f_{t}\circ c_{t-1}+i_{t}\circ \tilde{c_{t}}\\
+h_{t}=o_{t}\circ tanh(c_{t})
+\end{align*}
+where the final output of the last lstm cell is defined by $\hat{y_{t}}=softmax(h_{t}W+b)$. The final cost function $J$ uses the cross-entropy loss. Consider an LSTM for two time steps, $t$ and $t-1$.
+    \begin{center}
+        \captionsetup{width=0.4\textwidth}
+        \includegraphics[width=0.4\textwidth]{LSTM.png}
+        \label{LSTM-figure}
+    \end{center}
+\begin{enumerate}[label=(\alph*)]
+    \item Derive the gradient $\frac{\delta J}{\delta U^{(c)}}$ in terms of the following gradients: $\frac{\delta h_{t}}{\delta h_{t-1}}, \frac{\delta h_{t-1}}{\delta U^{(c)}}, \frac{\delta J}{\delta h_{t}}, \frac{\delta c_{t}}{\delta U^{(c)}}, \frac{\delta c_{t-1}}{\delta U^{(c)}}, \frac{\delta c_{t}}{\delta c_{t-1}}, \frac{\delta h_{t}}{\delta c_{t}},$ and $\frac{\delta h_{t}}{\delta o_{t}}$. \textit{Not all of the gradients may be used.} You can leave the answer in the form of chain rule and do not have to calculate any individual gradients in your final result. \textbf{(8 pts)}
+    \begin{answer}
+To derive $\frac{\partial J}{\partial U^{(c)}}$ for the LSTM, we need to apply the chain rule carefully, considering that $U^{(c)}$ affects the loss $J$ through multiple pathways across time steps.
+
+\medskip
+
+\textbf{Understanding the Dependencies:}
+
+The parameter $U^{(c)}$ appears in the computation of $\tilde{c_t}$ (the candidate cell state):
+\[
+\tilde{c_t} = \tanh(W^{(c)}x_t + U^{(c)}h_{t-1})
+\]
+
+At time step $t$, $U^{(c)}$ influences:
+\begin{enumerate}
+    \item $\tilde{c_t}$ directly (through the current time step)
+    \item $c_t$ through $\tilde{c_t}$ (since $c_t = f_t \circ c_{t-1} + i_t \circ \tilde{c_t}$)
+    \item $h_t$ through $c_t$ (since $h_t = o_t \circ \tanh(c_t)$)
+    \item Future time steps through $h_t$ (if we consider $t+1, t+2, \ldots$)
+\end{enumerate}
+
+At time step $t-1$, $U^{(c)}$ similarly affects $\tilde{c_{t-1}}$, $c_{t-1}$, $h_{t-1}$, and consequently affects time step $t$.
+
+\medskip
+
+\textbf{Complete Gradient Derivation:}
+
+The total gradient $\frac{\partial J}{\partial U^{(c)}}$ accumulates contributions from all time steps. For two time steps $t-1$ and $t$, we have:
+
+\[
+\frac{\partial J}{\partial U^{(c)}} = \frac{\partial J}{\partial U^{(c)}}\bigg|_{t} + \frac{\partial J}{\partial U^{(c)}}\bigg|_{t-1}
+\]
+
+\medskip
+
+\textbf{Contribution from Time Step $t$:}
+
+At time $t$, the gradient flows from $J$ to $U^{(c)}$ through the following path:
+\[
+J \to h_t \to c_t \to \tilde{c_t} \to U^{(c)}
+\]
+
+Therefore:
+\[
+\frac{\partial J}{\partial U^{(c)}}\bigg|_{t} = \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial \tilde{c_t}} \cdot \frac{\partial \tilde{c_t}}{\partial U^{(c)}}
+\]
+
+Since $c_t = f_t \circ c_{t-1} + i_t \circ \tilde{c_t}$, we have $\frac{\partial c_t}{\partial \tilde{c_t}} = i_t$ (element-wise multiplication by input gate).
+
+\medskip
+
+\textbf{Contribution from Time Step $t-1$:}
+
+At time $t-1$, $U^{(c)}$ affects $J$ through a more complex path:
+\[
+J \to h_t \to c_t \to c_{t-1} \to \tilde{c_{t-1}} \to U^{(c)}
+\]
+
+Additionally, there is a direct path through $h_{t-1}$:
+\[
+J \to h_t \to h_{t-1} \to \tilde{c_{t-1}} \to U^{(c)}
+\]
+
+The gradient from time $t-1$ must account for both pathways:
+
+\[
+\frac{\partial J}{\partial U^{(c)}}\bigg|_{t-1} = \left(\frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial c_{t-1}} + \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial h_{t-1}}\right) \cdot \frac{\partial h_{t-1}}{\partial U^{(c)}}
+\]
+
+where $\frac{\partial h_{t-1}}{\partial U^{(c)}}$ can be further expanded using the chain rule at time $t-1$:
+\[
+\frac{\partial h_{t-1}}{\partial U^{(c)}} = \frac{\partial h_{t-1}}{\partial c_{t-1}} \cdot \frac{\partial c_{t-1}}{\partial \tilde{c_{t-1}}} \cdot \frac{\partial \tilde{c_{t-1}}}{\partial U^{(c)}}
+\]
+
+\medskip
+
+\textbf{Final Combined Expression:}
+
+Combining both contributions, we obtain:
+
+\begin{align*}
+\boxed{
+\frac{\partial J}{\partial U^{(c)}} = \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial \tilde{c_t}} \cdot \frac{\partial \tilde{c_t}}{\partial U^{(c)}}
++ \left(\frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial c_{t-1}} + \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial h_{t-1}}\right) \cdot \frac{\partial h_{t-1}}{\partial U^{(c)}}
+}
+\end{align*}
+
+\medskip
+
+\textbf{Simplified Form Using Given Notation:}
+
+Using the notation from the problem statement:
+
+\[
+\boxed{
+\frac{\partial J}{\partial U^{(c)}} = \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial U^{(c)}}
++ \left(\frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial c_{t-1}} + \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial h_{t-1}}\right) \cdot \frac{\partial h_{t-1}}{\partial U^{(c)}}
+}
+\]
+
+where:
+\begin{itemize}
+    \item $\frac{\partial c_t}{\partial U^{(c)}}$ represents the direct effect of $U^{(c)}$ at time $t$
+    \item $\frac{\partial c_t}{\partial c_{t-1}}$ captures the cell state pathway across time
+    \item $\frac{\partial h_t}{\partial h_{t-1}}$ captures the hidden state pathway across time
+    \item $\frac{\partial h_{t-1}}{\partial U^{(c)}}$ recursively accounts for effects from earlier time steps
+\end{itemize}
+
+\medskip
+
+\textbf{Note on Recursion:} This derivation shows that computing $\frac{\partial J}{\partial U^{(c)}}$ requires $\frac{\partial h_{t-1}}{\partial U^{(c)}}$, which itself depends on gradients from time $t-2$. In practice, this recursion continues backward through all time steps, which is the essence of Backpropagation Through Time (BPTT).
+
+\end{answer}
+
+\item {Using your result from part (a) for $\frac{\delta J}{\delta U^{(c)}}$ in the LSTM \emph{and} the vanilla RNN chain rule below, explain \emph{which multiplicative factor(s)} in the LSTM gradient mitigate the vanishing–gradient problem \emph{and why} .
+(Comparison) Vanilla RNN chain rule: If $h_t=\phi(Wx_t + Uh_{t-1})$ and $J$ depends only on $h_t$, then for two successive time steps,
+\[
+\frac{\delta J}{\delta U}
+= \frac{\delta J}{\delta h_t}\,
+\frac{\delta h_t}{\delta h_{t-1}}\,
+\frac{\delta h_{t-1}}{\delta U}.
+\]
+}\textbf{(4 pts)}
+    \begin{answer}
+The LSTM architecture mitigates the vanishing gradient problem through its unique cell state pathway. Let's compare the gradient flow in vanilla RNN versus LSTM to identify the key differences.
+
+\medskip
+
+\textbf{Vanilla RNN Gradient Problem:}
+
+In a vanilla RNN with $h_t = \phi(Wx_t + Uh_{t-1})$, the gradient is:
+\[
+\frac{\partial J}{\partial U} = \frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial h_{t-1}} \cdot \frac{\partial h_{t-1}}{\partial U}
+\]
+
+where:
+\[
+\frac{\partial h_t}{\partial h_{t-1}} = \text{diag}(\phi'(Wx_t + Uh_{t-1})) \cdot U
+\]
+
+For long sequences over $T$ time steps:
+\[
+\frac{\partial h_T}{\partial h_0} = \prod_{t=1}^{T} \frac{\partial h_t}{\partial h_{t-1}} = \prod_{t=1}^{T} \text{diag}(\phi'(\cdots)) \cdot U
+\]
+
+\textbf{Problem:} This product of many matrices causes:
+\begin{itemize}
+    \item \textbf{Vanishing gradients:} If eigenvalues of $\text{diag}(\phi') \cdot U$ are $< 1$, the gradient exponentially decays: $(0.9)^{50} \approx 5 \times 10^{-3}$
+    \item \textbf{Exploding gradients:} If eigenvalues are $> 1$, the gradient grows exponentially
+    \item The activation derivative $\phi'$ (e.g., $\tanh'$ or $\sigma'$) is typically small ($\leq 0.25$), exacerbating the problem
+\end{itemize}
+
+\medskip
+
+\textbf{LSTM Gradient Flow - Key Mitigation Factors:}
+
+From part (a), the LSTM gradient contains the term:
+\[
+\frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial c_t} \cdot \frac{\partial c_t}{\partial c_{t-1}} \cdot \frac{\partial c_{t-1}}{\partial U^{(c)}}
+\]
+
+The critical multiplicative factor is:
+\[
+\boxed{\frac{\partial c_t}{\partial c_{t-1}} = f_t}
+\]
+
+This comes from the cell state update rule:
+\[
+c_t = f_t \circ c_{t-1} + i_t \circ \tilde{c_t}
+\]
+
+Taking the partial derivative with respect to $c_{t-1}$:
+\[
+\frac{\partial c_t}{\partial c_{t-1}} = f_t \quad \text{(element-wise)}
+\]
+
+\medskip
+
+\textbf{Why This Mitigates Vanishing Gradients:}
+
+\begin{enumerate}
+    \item \textbf{Additive Structure (Constant Error Carousel):}
+
+    The cell state update is \emph{additive}: $c_t = f_t \circ c_{t-1} + i_t \circ \tilde{c_t}$, not purely multiplicative like vanilla RNN. This creates a "highway" for gradients to flow backward through time without being repeatedly multiplied by weight matrices.
+
+    \item \textbf{Forget Gate Control:}
+
+    The gradient flow is controlled by $f_t = \sigma(W^{(f)}x_t + U^{(f)}h_{t-1})$, where $\sigma$ is the sigmoid function with range $(0, 1)$.
+
+    \begin{itemize}
+        \item When $f_t \approx 1$ (forget gate open): Gradient flows almost unchanged through time, creating an \emph{identity-like connection}
+        \item The network \emph{learns} when to keep $f_t \approx 1$ for important long-term dependencies
+        \item Unlike vanilla RNN where the multiplier is fixed by $U$ and $\phi'$, the LSTM can \emph{adapt} $f_t$ during training
+    \end{itemize}
+
+    \item \textbf{No Repeated Matrix Multiplication:}
+
+    In vanilla RNN, backpropagating through $T$ steps requires:
+    \[
+    \prod_{t=1}^{T} \text{diag}(\phi') \cdot U
+    \]
+
+    In LSTM, the cell state pathway involves:
+    \[
+    \prod_{t=1}^{T} f_t
+    \]
+    where each $f_t$ is a diagonal matrix (element-wise operation), not a full weight matrix. This eliminates the problematic repeated multiplication by $U$.
+
+    \item \textbf{Gradient Magnitude Preservation:}
+
+    For a sequence of length $T$, if forget gates maintain $f_t \approx 1$:
+    \[
+    \frac{\partial c_T}{\partial c_0} = \prod_{t=1}^{T} f_t \approx 1^T = 1
+    \]
+
+    Compare this to vanilla RNN where even $0.9^{50} \approx 0.005$ causes severe gradient vanishing.
+
+    \item \textbf{Selective Memory:}
+
+    The LSTM can selectively remember important information by keeping $f_t \approx 1$ and forget irrelevant information by setting $f_t \approx 0$. This learned gating mechanism provides:
+    \begin{itemize}
+        \item \textbf{Long-range dependencies:} Gradients flow efficiently for important features
+        \item \textbf{Short-term forgetting:} Irrelevant information doesn't interfere
+        \item \textbf{Adaptive time scales:} Different features can have different effective memory spans
+    \end{itemize}
+\end{enumerate}
+
+\medskip
+
+\textbf{Additional Pathways in LSTM:}
+
+The LSTM gradient also includes:
+\[
+\frac{\partial J}{\partial h_t} \cdot \frac{\partial h_t}{\partial h_{t-1}} \cdot \frac{\partial h_{t-1}}{\partial U^{(c)}}
+\]
+
+However, this pathway \emph{still suffers} from vanishing gradients (similar to vanilla RNN). The key advantage of LSTM is that it \emph{adds} the cell state pathway $c_t \to c_{t-1}$ as an alternative route that \emph{doesn't} vanish, effectively bypassing the problematic $h_t \to h_{t-1}$ pathway.
+
+\medskip
+
+\textbf{Summary Comparison:}
+
+\begin{center}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Aspect} & \textbf{Vanilla RNN} & \textbf{LSTM} \\
+\hline
+Gradient pathway & $h_t \to h_{t-1}$ (only) & $c_t \to c_{t-1}$ (primary) + $h_t \to h_{t-1}$ (secondary) \\
+\hline
+Multiplicative factor & $\text{diag}(\phi') \cdot U$ (fixed by architecture) & $f_t$ (learned, adaptive) \\
+\hline
+Gradient flow & Exponential decay/explosion & Near-constant when $f_t \approx 1$ \\
+\hline
+Long-term dependencies & Difficult to learn ($>$10-20 steps) & Effective for 100+ steps \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+
+\textbf{Conclusion:}
+
+The \textbf{forget gate $f_t$ in $\frac{\partial c_t}{\partial c_{t-1}} = f_t$} is the primary factor mitigating vanishing gradients in LSTMs because it:
+\begin{enumerate}
+    \item Creates an additive, highway-like pathway for gradient flow
+    \item Provides learned, adaptive gradient control (not fixed by weight matrices)
+    \item Eliminates repeated weight matrix multiplication across time steps
+    \item Enables near-identity gradient propagation when needed for long-term dependencies
+\end{enumerate}
+
+This architectural innovation allows LSTMs to effectively learn dependencies spanning hundreds of time steps, whereas vanilla RNNs typically fail beyond 10-20 steps.
+
+\end{answer}
+%     \begin{answer}
+% LSTM이 기울기 소실을 완화하는 핵심은 \emph{셀 상태 경로}입니다. 두 시점에서 해당 항은
+% \[
+% \left(\frac{\delta J}{\delta h_t}\right)\!
+% \left(\frac{\delta h_t}{\delta c_t}\right)\!
+% \left(\frac{\delta c_t}{\delta c_{t-1}}\right)\!
+% \left(\frac{\delta c_{t-1}}{\delta U^{(c)}}\right),
+% \quad\text{where}\quad
+% \frac{\delta c_t}{\delta c_{t-1}} = f_t.
+% \]
+% 즉, $c_t = f_t\!\circ c_{t-1} + i_t\!\circ\tilde c_t$의 \emph{가산 구조}와
+% $\frac{\delta c_t}{\delta c_{t-1}}=f_t$(forget 게이트)가 만들어주는 \emph{거의 항등(CEC)} 경로가
+% 시간 축을 따라 기울기가 사라지지 않도록 돕습니다. $f_t\approx \mathbf{1}$이면
+% 긴 시퀀스에서도 기울기 크기가 잘 유지됩니다.
+
+% \medskip
+% \textbf{(비교) Vanilla RNN의 체인룰:}
+% $h_t=\phi(Wx_t + Uh_{t-1})$이고 $J$가 $h_t$에만 의존한다고 하면 두 시점에서
+% \[
+% \frac{\delta J}{\delta U}
+% = \frac{\delta J}{\delta h_t}\,
+% \frac{\delta h_t}{\delta h_{t-1}}\,
+% \frac{\delta h_{t-1}}{\delta U}.
+% \]
+% 더 일반적으로 $T$시점까지 누적하면
+% \[
+% \frac{\delta J}{\delta U}
+% = \frac{\delta J}{\delta h_T}\sum_{k=1}^{T}
+% \left(\prod_{j=k+1}^{T}\frac{\delta h_j}{\delta h_{j-1}}\right)\!
+% \frac{\delta h_k}{\delta U},
+% \quad\text{with}\quad
+% \frac{\delta h_j}{\delta h_{j-1}}=\mathrm{diag}\!\big(\phi'(a_j)\big)\,U.
+% \]
+% 여기서는 $\mathrm{diag}(\phi')$의 작은 값들과 $U$의 반복 곱이 생겨
+% \emph{소실/폭발} 문제가 빈번합니다. 반면 LSTM은 셀 상태의 가산 경로와 $f_t$가
+% 이 곱셈 사슬을 완화(때로는 우회)하여 장기 의존성 학습을 용이하게 합니다.
+% \end{answer}
+
+\end{enumerate}
+
+\section{Neural Machine Translation with LSTM (54$+$3 pts)}
+ In Neural Machine Translation (NMT), our goal is to convert a sentence from the \textit{source} language to the \textit{target} language. In this assignment, we will implement a sequence-to-sequence (Seq2Seq) network with attention, to build a Neural Machine Translation (NMT) system between Jeju dialect and Korean.
+ \subsection{Training Procedure}
+\begin{figure}[h]
+    \begin{center}
+        \captionsetup{width=0.8\textwidth}
+        \includegraphics[width=0.7\textwidth]{nmt.png}
+        \caption{Seq2Seq Model with Multiplicative Attention, shown on the third step of the decoder.  (NOTE: Embedding of NMT in the assignment differs from described above.)
+        }
+        \label{nmt-figure}
+    \end{center}
+\end{figure}
+In this section, we describe the \textbf{training procedure} for the proposed NMT system, which uses a Bidirectional LSTM Encoder and a Unidirectional LSTM Decoder. The model is trained and evaluated on JIT (Jejueo interview transcripts) dataset\footnote{\url{https://www.kaggle.com/datasets/bryanpark/jit-dataset}}. Given a sentence in the source language (Jeju dialect), we look up the subword embeddings from an embeddings matrix, yielding $\mathbf{x}_1, \dots, \mathbf{x}_m$ ($\mathbf{x}_i \in \mathbb{R}^{e \times 1}$), where $m$ is the length of the source sentence and $e$ is the embedding size. We feed these embeddings to the bidirectional encoder, yielding hidden states and cell states for both the forwards ($\rightarrow$) and backwards ($\leftarrow$) LSTMs. The forwards and backwards versions are concatenated to make hidden states $\mathbf{h}^{enc}_i$ and cell states $\mathbf{c}^{enc}_i$:
+
+\begin{align}
+    \henc_i = [\hencbw{i}; \hencfw{i}] \enspace &\text{where}\enspace \henc_i \in \Real^{2h \times 1}, \hencbw{i}, \hencfw{i} \in \Real^{h \times 1} &1 \le i \le m \\
+    \cenc_i = [\cencbw{i}; \cencfw{i}] \enspace &\text{where} \enspace \cenc_i \in \Real^{2h \times 1}, \cencbw{i}, \cencfw{i} \in \Real^{h \times 1} &1 \le i \le m
+\end{align}
+We then initialize the decoder's first hidden state $\hdec_0$ and cell state $\cdec_0$ with a linear projection of the encoder's final hidden state and final cell state.\footnote{Note that we regard $[\hencbw{1}, \hencfw{m}]$ as the `final hidden state' of the Encoder.}
+
+\begin{align}
+    \hdec_0 = \mathbf{W}_{h}[\hencbw{1}; \hencfw{m}] \enspace &\text{where} \enspace \hdec_0 \in \Real^{h \times 1}, \mathbf{W}_{h} \in \Real^{h \times 2h}\\
+    \cdec_0 = \mathbf{W}_{c}[\cencbw{1}; \cencfw{m}] \enspace &\text{where} \enspace \cdec_0 \in \Real^{h \times 1}, \mathbf{W}_{c} \in \Real^{h \times 2h}
+\end{align}
+
+
+With the decoder initialized, we must now feed it a target sentence. On the $t^{th}$ step, we look up the embedding for the $t^{th}$ subword,  $\mathbf{y}_t \in \Real^{e \times 1}$. We then concatenate $\mathbf{y}_t$ with the \textit{combined-output vector} $\mathbf{o}_{t-1} \in \Real^{h \times 1}$ from the previous timestep (we will explain what this is later down this page!\@) to produce $\overline{\mathbf{y}_t} \in \Real^{(e+h) \times 1}$. Note that for the first target subword (i.e. the start token) $\mathbf{o}_{0}$ is a zero-vector. We then feed $\overline{\mathbf{y}_t}$ as input to the decoder.
+
+\begin{align}
+    \hdec_t, \cdec_t = \text{Decoder}(\overline{\mathbf{y}_t}, \hdec_{t-1}, \cdec_{t-1}) \enspace &\text{where} \enspace \hdec_t \in \Real^{h \times 1}, \cdec_t \in \Real^{h \times 1}\\
+\end{align}
+We then use $\hdec_t$ to compute  multiplicative attention over $\henc_1, \dots, \henc_m$:
+
+\begin{align}
+    \mathbf{e}_{t, i} = (\hdec_t)^T\mathbf{W}_{\text{attProj}}\henc_i \enspace &\text{where} \enspace \mathbf{e}_{t} \in \Real^{m \times 1}, \mathbf{W}_{\text{attProj}}\in \Real^{h \times 2h} & 1 \le i \le m \\
+    \alpha_t= \text{softmax}(\mathbf{e}_t) \enspace &\text{where} \enspace \alpha_t \in \Real^{m \times 1}\\
+    \mathbf{a}_t = \sum_{i=1}^{m}\alpha_{t,i}\henc_i \enspace &\text{where} \enspace \mathbf{a}_t \in \Real^{2h \times 1}
+\end{align}
+
+Here, $\mathbf{e}_{t, i}$ is a scalar, the $i^{th}$ element of $\mathbf{e}_{t} \in \Real^{m \times 1}$, computed using the hidden state of the decoder at the $t^{th}$ step $\hdec_t \in \Real^{h \times 1}$, the attention projection $\mathbf{W}_{\text{attProj}} \in \Real^{h \times 2h}$, and the hidden state of the encoder at the $i^{th}$ step $\henc_i \in \Real^{2h \times 1}$.
+
+We now concatenate the attention output $\mathbf{a}_t$ with the decoder hidden state $\hdec_t$ and pass this through a linear layer, tanh, and dropout to attain the \textit{combined-output} vector $\mathbf{o}_{t}$.
+
+\begin{align}
+    \mathbf{u}_{t} = [\mathbf{a}_{t}; \hdec_t] \enspace &\text{where} \enspace \mathbf{u}_t \in  \Real^{3h \times 1} \\
+    \mathbf{v}_t = \mathbf{W}_{u}\mathbf{u}_t \enspace &\text{where} \enspace \mathbf{v}_t \in \Real^{h \times 1}, \mathbf{W}_{u} \in \Real^{h \times 3h}\\
+    \mathbf{o}_t = \text{dropout}(\text{tanh}(\mathbf{v}_t)) \enspace &\text{where} \enspace \mathbf{o}_t \in \Real^{h \times 1}
+\end{align}
+
+Then, we produce a probability distribution $\mathbf{P}_t$ over target subwords at the $t^{th}$ timestep:
+
+\begin{align}
+    \mathbf{P}_t = \text{softmax}(\mathbf{W}_{\text{vocab}}\mathbf{o}_{t}) \enspace &\text{where} \enspace \mathbf{P}_t \in \Real^{V_{t} \times 1}, \mathbf{W}_{\text{vocab}} \in \Real^{V_{t} \times h}
+\end{align}
+
+Here, $V_{t}$ is the size of the target vocabulary. Finally, to train the network we compute the cross entropy loss between $\mathbf{P}_t$ and $\mathbf{g}_{t}$, where $\mathbf{g}_{t}$ is the one-hot vector of the target subword at the timestep $t$:
+
+\begin{align}
+    J_t(\theta) = \mathrm{CrossEntropy}(\mathbf{P}_t,\mathbf{g}_{t})
+\end{align}
+
+Here, $\theta$ represents all the parameters of the model and $J_t(\theta)$ is the loss on the step $t$ of the decoder.
+Now that we have described the model, let's try implementing it for Jeju dialect to Korean translation!
+
+\subsection{Setting up Virtual Environment}
+
+In this part, we will set up a virtual environment for implementing the NMT machine. Please note that the following instructions are based on the gsds server as announced on the ETL board \footnote{\url{https://myetl.snu.ac.kr/courses/264449/discussion_topics/202254}}. Run the following commands within the assignment directory (\texttt{/q3}) to create the appropriate conda environment. This guarantees that you have all the necessary packages to complete the assignment.
+
+\begin{minted}{bash}
+    conda create -n a3q3 python=3.12
+    conda activate a3q3
+    srun --gres=gpu:1 bash env.sh
+\end{minted}
+
+
+\subsection{Implementation Questions}
+
+\begin{enumerate}[label=(\alph*)]
+
+    \item To ensure the sentences in a given batch are of the same length, we must pad shorter sentences to be the same length after identifying the longest sentence in a batch. Implement the \texttt{pad\_sents} function in \texttt{utils.py}, which returns padded sentences. \textbf{(5 pts)}
+
+    \item Implement the code of class \texttt{LSTMCell\_assignment} in \texttt{assignment\_code.py}. LSTMCell contains two functions: initialization \texttt{\_\_init\_\_()} and forward \texttt{forward()}. You can refer to the PyTorch documentations
+    \footnote{LSTMCell: \url{https://pytorch.org/docs/stable/generated/torch.nn.LSTMCell.html} \newline
+    GRUCell: \url{https://pytorch.org/docs/stable/generated/torch.nn.GRUCell.html}}
+    or \texttt{GRUCell\_assignment} class which is implemented on the skeleton code.  \textbf{(10 pts)}
+
+   \item Implement the \texttt{\_\_init\_\_} function of \texttt{NMT} class in \texttt{nmt\_model.py} to initialize layers for the NMT system. You can run sanity check by executing \texttt{python sanity\_check.py 1c} \textbf{(5 pts)}
+
+    \item Implement the \texttt{encode} function in \texttt{nmt\_model.py}. This function converts the padded source sentences into the tensor $\mathbf{X}$, generates $\mathbf{h}^{enc}_1$...$\mathbf{h}^{enc}_m$, and computes the initial state $\mathbf{h}^{dec}_0$ and initial cell $\mathbf{c}^{dec}_0$ for the Decoder. You can run sanity check by executing \texttt{python sanity\_check.py 1d} \textbf{(8 pts)}
+
+    \item Implement the \texttt{decode} function in \texttt{nmt\_model.py}. This function constructs $\overline{\mathbf{y}}$
+    and runs the step function over every timestep for the input. You can run sanity check by executing \texttt{python sanity\_check.py 1e} \textbf{(8 pts)}
+
+    \item Implement the \texttt{step} function in \texttt{nmt\_model.py}. This function applies the Decoder's LSTM cell for a single timestep, computing the encoding of the target subword $\hdec_t$, the attention scores $\mathbf{e}_t$, attention distribution $\alpha_t$, the attention output $\mathbf{a}_{t}$, and finally the combined output $\mathbf{o}_t$. You can run a non-comprehensive sanity check by executing \texttt{python sanity\_check.py 1f}  \textbf{(5 pts)}
+
+    \item Let's train the model! execute the following command:
+    \begin{minted}{bash}
+        sh run.sh vocab
+        sh run.sh train
+    \end{minted}
+    Check out the model is running on GPU when training. Training takes within one GPU hour. After training your model, execute the following command to test the model:
+    \begin{minted}{bash}
+        sh run.sh test
+    \end{minted}
+    Write down the execution time and BLEU score. To get a full credit, BLEU score should be larger than 50. \textbf{(5 pts)}
+    \begin{answer}
+    \end{answer}
+
+    \item There are a few different methods to generate text from a decoder model such as greedy decoding, beam search, top-k sampling, and top-p sampling. In this code, beam search with a default beam size of 10 is utilized. You can modify the beam size by passing it as an argument in the following way:
+    \begin{minted}{bash}
+        sh run.sh test <beam-size>
+    \end{minted}
+     Now, perform the decoding with beam size of 1, 3, 5, 10 and 25. Note that beam search with a beam size of 1 is equivalent to greedy decoding. Compare the execution time and performance with different beam sizes. Explain the observed trends as well as the potential reasons for the trends.  Discuss distinctions between beam search (beam size greater than 1) and greedy decoding, considering expected and observed differences.
+     \textbf{(8 pts)}
+    \begin{answer}
+    \end{answer}
+
+    \item \textbf{(BONUS)} Conduct additional experiments using various beam sizes to determine the best one. Record your chosen beam size and justify your decision. Research established guidelines for beam size selection (or any rule-of-thumb value for beam size) and contrast your choice or reasoning with these conventions.
+     \textbf{(3 pts)}
+    \begin{answer}
+    \end{answer}
+\end{enumerate}
+
+\end{document}
