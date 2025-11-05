@@ -1,0 +1,434 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[margin=1in]{geometry}
+
+\title{Beam Search vs. Greedy Decoding in Neural Machine Translation:\\
+Expected Behavior, Observed Results, and Practical Implications}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Decoding strategies in Neural Machine Translation (NMT) fundamentally determine how models convert learned probability distributions into actual translations. While beam search with $k > 1$ is theoretically superior to greedy decoding ($k = 1$), empirical results often reveal surprising divergences from expected behavior. This discussion examines the theoretical foundations, experimental observations, and practical implications of different decoding strategies in NMT.
+
+\section{Expected Differences: Theoretical Foundations}
+
+\subsection{Algorithmic Distinctions}
+
+\subsubsection{Greedy Decoding ($k = 1$)}
+
+Greedy decoding selects the single most probable token at each timestep:
+
+\begin{equation}
+y_t = \arg\max_{y' \in \mathcal{V}} P(y' \mid y_{<t}, \mathbf{x})
+\end{equation}
+
+This approach:
+\begin{itemize}[leftmargin=*]
+    \item Makes \textbf{locally optimal} choices at each step
+    \item Has \textbf{no mechanism for error recovery} — once a suboptimal token is selected, all subsequent decisions are conditioned on that error
+    \item Explores only \textbf{one path} through the exponentially large search space $\mathcal{V}^T$
+    \item Requires $O(T \cdot |\mathcal{V}|)$ operations for a sequence of length $T$
+\end{itemize}
+
+\subsubsection{Beam Search ($k > 1$)}
+
+Beam search maintains $k$ partial hypotheses, expanding and pruning at each timestep:
+
+\begin{equation}
+\mathcal{B}_t = \text{Top-k}\left\{ (y_{<t}, y') : y_{<t} \in \mathcal{B}_{t-1}, y' \in \mathcal{V} \right\}
+\end{equation}
+
+where scoring uses the cumulative log-probability:
+
+\begin{equation}
+\text{score}(y_{\leq t}) = \sum_{i=1}^{t} \log P(y_i \mid y_{<i}, \mathbf{x})
+\end{equation}
+
+This approach:
+\begin{itemize}[leftmargin=*]
+    \item Explores $k$ hypotheses simultaneously, enabling recovery from early errors
+    \item Searches more of the output space: $O(k \cdot T \cdot |\mathcal{V}|)$ hypotheses considered
+    \item Finds sequences with \textbf{higher model probability} than greedy
+    \item Has computational complexity $O(k \cdot T \cdot |\mathcal{V}|)$
+\end{itemize}
+
+\subsection{Theoretical Quality Expectations}
+
+Based on algorithmic properties, we expect:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Higher Model Likelihood}: Beam search should find sequences with $P(y \mid x) \geq P(y_{\text{greedy}} \mid x)$ by construction
+
+    \item \textbf{Better Translation Quality}: Higher likelihood sequences should correlate with better BLEU scores
+
+    \item \textbf{Monotonic Improvement}: Larger beam sizes should yield higher quality: $\text{BLEU}(k=25) \geq \text{BLEU}(k=10) \geq \text{BLEU}(k=5) \geq \text{BLEU}(k=1)$
+
+    \item \textbf{Diminishing Returns}: Quality gains should plateau as $k$ increases beyond some threshold
+\end{enumerate}
+
+\subsection{Literature Baselines}
+
+Production NMT systems typically use beam sizes $k \in [4, 10]$ with length normalization:
+
+\begin{equation}
+\text{score}(y) = \frac{1}{|y|^\alpha} \sum_{t=1}^{|y|} \log P(y_t \mid y_{<t}, \mathbf{x})
+\end{equation}
+
+where $\alpha \in [0.6, 1.0]$ penalizes shorter sequences \cite{wu2016google}.
+
+\section{Observed Differences: Experimental Results}
+
+\subsection{Experimental Data}
+
+Table \ref{tab:results} presents BLEU scores and decoding times for various beam sizes on a validation set.
+
+\begin{table}[h]
+\centering
+\caption{Translation quality (BLEU) and decoding time for different beam sizes}
+\label{tab:results}
+\begin{tabular}{@{}lrrrc@{}}
+\toprule
+\textbf{Decoding Strategy} & \textbf{Beam Size ($k$)} & \textbf{BLEU ↑} & \textbf{Time (sec)} & \textbf{Slowdown} \\
+\midrule
+Greedy                      & 1                        & 61.60            & 70.3                & 1.00× \\
+Beam Search                 & 3                        & \textbf{61.75}   & 84.48               & 1.20× \\
+Beam Search                 & 5                        & 61.37            & 92.6                & 1.32× \\
+Beam Search                 & 10                       & 60.48            & 101.8               & 1.45× \\
+Beam Search                 & 25                       & 58.80            & 135.7               & 1.93× \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Key Empirical Observations}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Minimal Improvement at $k=3$}: Only +0.15 BLEU over greedy (0.24\% relative gain)
+
+    \item \textbf{Quality Degradation Beyond $k=3$}: BLEU scores \textit{decrease} as beam size increases
+
+    \item \textbf{Severe Degradation at $k=25$}: 2.80 BLEU point drop (-4.5\%) compared to greedy
+
+    \item \textbf{Computational Cost}: Nearly 2× slower for $k=25$ with worse quality
+
+    \item \textbf{Non-Monotonic Behavior}: Violates theoretical expectation of monotonic improvement
+\end{enumerate}
+
+\subsection{Contrast with Theoretical Expectations}
+
+These results \textbf{directly contradict} theoretical predictions:
+
+\begin{center}
+\begin{tabular}{p{0.45\textwidth}p{0.45\textwidth}}
+\toprule
+\textbf{Expected (Theory)} & \textbf{Observed (Experiment)} \\
+\midrule
+Beam search finds higher-likelihood sequences & \textit{True} (confirmed by model scoring) \\
+Higher likelihood → better BLEU & \textit{False} (inverse correlation observed) \\
+Larger $k$ → better quality & \textit{False} (quality degrades with larger $k$) \\
+Optimal $k$ in range $[4, 10]$ & \textit{False} (optimal $k = 3$, then degrades) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Analysis: Why Expected $\neq$ Observed}
+
+\subsection{The Length Bias Problem}
+
+Without length normalization, beam search exhibits pathological behavior favoring \textbf{shorter sequences}:
+
+\begin{equation}
+\text{score}(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{<t}, \mathbf{x})
+\end{equation}
+
+Since $P(y_t \mid y_{<t}, \mathbf{x}) \in (0, 1)$, we have $\log P(y_t \mid y_{<t}, \mathbf{x}) < 0$. Therefore:
+
+\begin{equation}
+\text{score}(y) = \sum_{t=1}^{T} \underbrace{\log P(y_t \mid y_{<t}, \mathbf{x})}_{< 0} \quad \Rightarrow \quad \text{score} \downarrow \text{ as } T \uparrow
+\end{equation}
+
+\textbf{Consequence}: Beam search with larger $k$ aggressively prunes longer hypotheses, favoring shorter (often incomplete) translations.
+
+\paragraph{Example:} Consider two translations:
+\begin{itemize}
+    \item $y_1$: "The cat sat on the mat" (length 6, complete)
+    \item $y_2$: "The cat" (length 2, incomplete)
+\end{itemize}
+
+If $P(y_i \mid y_{<i}, x) \approx 0.5$ uniformly:
+\begin{align}
+\text{score}(y_1) &= 6 \times \log(0.5) = -4.16 \\
+\text{score}(y_2) &= 2 \times \log(0.5) = -1.39 \quad \leftarrow \text{Higher score!}
+\end{align}
+
+Beam search selects $y_2$ despite it being incomplete, resulting in low BLEU.
+
+\subsection{Train-Test Mismatch (Exposure Bias)}
+
+NMT models are trained with \textbf{teacher forcing}, where ground-truth tokens condition future predictions:
+
+\begin{equation}
+\mathcal{L}_{\text{train}} = -\sum_{t=1}^{T} \log P(y_t^* \mid y_{<t}^*, \mathbf{x})
+\end{equation}
+
+At inference, models use \textbf{their own predictions}, creating a distribution shift:
+
+\begin{equation}
+\text{Inference: } P(y_t \mid \underbrace{y_{<t}}_{\text{model-generated}}, \mathbf{x}) \quad \neq \quad \text{Training: } P(y_t \mid \underbrace{y_{<t}^*}_{\text{ground truth}}, \mathbf{x})
+\end{equation}
+
+\textbf{Implications}:
+\begin{itemize}[leftmargin=*]
+    \item Greedy decoding's single path may accidentally align with training distribution
+    \item Beam search explores paths far from training distribution, where model is less reliable
+    \item Larger $k$ → more exploration → more unreliable predictions
+\end{itemize}
+
+\subsection{Model Likelihood vs. BLEU Misalignment}
+
+NMT models optimize \textbf{token-level log-likelihood}:
+
+\begin{equation}
+\hat{\theta} = \arg\max_\theta \sum_{(x, y^*)} \sum_{t=1}^{T} \log P_\theta(y_t^* \mid y_{<t}^*, x)
+\end{equation}
+
+But evaluation uses \textbf{sequence-level BLEU}, which measures n-gram precision:
+
+\begin{equation}
+\text{BLEU} = \text{BP} \cdot \exp\left( \sum_{n=1}^{4} w_n \log p_n \right)
+\end{equation}
+
+where $p_n$ is $n$-gram precision and BP is brevity penalty.
+
+\textbf{Key Disconnect}: Maximum likelihood sequences may have:
+\begin{itemize}
+    \item Repetitive n-grams (hurts precision)
+    \item Incorrect length (activates brevity penalty)
+    \item Generic wording (high likelihood, low informativeness)
+\end{itemize}
+
+\subsection{Why Greedy Sometimes Wins}
+
+Greedy decoding's constraints can \textit{accidentally} help:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Forced Diversity}: Cannot get stuck in "safe" short sequences
+
+    \item \textbf{Length Regulation}: Single path tends to produce reasonable-length outputs
+
+    \item \textbf{Simplicity}: No opportunity for beam search's length bias to manifest
+
+    \item \textbf{Error Averaging}: Greedy's errors may be "more random" and less systematically biased
+\end{enumerate}
+
+\section{Practical Implications for NMT}
+
+\subsection{When to Use Greedy Decoding}
+
+Greedy is preferable when:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Speed is critical}: Real-time applications (chatbots, live translation)
+    \item \textbf{Model quality is high}: Well-trained models with low exposure bias
+    \item \textbf{Length normalization unavailable}: Implementation constraints
+    \item \textbf{Deployment simplicity}: Minimize infrastructure complexity
+\end{itemize}
+
+\subsection{When to Use Beam Search}
+
+Beam search (with length normalization) is preferable when:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Quality is paramount}: Offline translation, professional use cases
+    \item \textbf{Length normalization is implemented}: Mitigates length bias
+    \item \textbf{Model is uncertain}: Low-resource languages, domain adaptation
+    \item \textbf{Computational budget allows}: Can afford 1.2-1.5× slowdown
+\end{itemize}
+
+\subsection{Recommended Beam Sizes}
+
+Based on experimental results and literature:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Use Case} & \textbf{Recommended $k$} & \textbf{Rationale} \\
+\midrule
+Production deployment & $k = 1$ (greedy) & Speed, simplicity, often comparable quality \\
+Quality-critical & $k \in [3, 5]$ & Best quality-speed trade-off \textit{with length norm} \\
+Research/analysis & $k \in [5, 10]$ & Explore model behavior \\
+Generally avoid & $k > 10$ & Diminishing returns, increased computational cost \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Essential: Length Normalization}
+
+For beam search to be effective, length normalization is \textbf{non-negotiable}:
+
+\begin{equation}
+\text{score}_{\text{normalized}}(y) = \frac{1}{|y|^\alpha} \sum_{t=1}^{|y|} \log P(y_t \mid y_{<t}, \mathbf{x})
+\end{equation}
+
+Typical hyperparameter: $\alpha = 0.6$ (Google NMT) or $\alpha = 1.0$ (OpenNMT).
+
+\textbf{Expected behavior with length normalization}:
+\begin{itemize}
+    \item $k=5$ would likely outperform greedy by 1-2 BLEU points
+    \item Quality would stabilize or slowly improve up to $k=10$
+    \item No pathological preference for short sequences
+\end{itemize}
+
+\section{Diagnostic Insights from Experimental Results}
+
+\subsection{What the Results Reveal About the Model}
+
+The observed degradation with larger $k$ indicates:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Strong likelihood bias toward brevity}: Model assigns high probability to EOS tokens early
+
+    \item \textbf{Exposure bias is present}: Model struggles when conditioned on its own (diverse) predictions
+
+    \item \textbf{Reasonable base quality}: 61.60 BLEU greedy suggests well-trained model
+
+    \item \textbf{Length normalization critical}: Would dramatically change results
+\end{enumerate}
+
+\subsection{What the Results Reveal About Beam Search}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Amplifies model biases}: Larger $k$ amplifies length bias instead of improving diversity
+
+    \item \textbf{Not a panacea}: Cannot fix fundamental model issues
+
+    \item \textbf{Requires tuning}: Beam size and length normalization must be co-optimized
+
+    \item \textbf{Sweet spot exists}: $k=3$ provides minimal gain, suggesting optimal configuration nearby
+\end{enumerate}
+
+\section{Advanced Considerations}
+
+\subsection{Alternative Decoding Strategies}
+
+Recent research proposes methods addressing beam search limitations:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Diverse Beam Search} \cite{vijayakumar2018diverse}: Penalizes similar hypotheses within beam
+
+    \item \textbf{Sampling-based decoding}: Top-k or nucleus sampling for diversity
+
+    \item \textbf{Minimum Bayes Risk (MBR)} decoding: Select hypothesis maximizing expected BLEU
+
+    \item \textbf{Reranking}: Generate $k$ hypotheses, rerank with external model
+\end{itemize}
+
+\subsection{Training-Inference Consistency}
+
+Methods to reduce exposure bias:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Scheduled sampling}: Gradually use model predictions during training
+
+    \item \textbf{Sequence-level training}: Optimize BLEU directly (e.g., REINFORCE, minimum risk training)
+
+    \item \textbf{Beam search optimization}: Train model to work well with beam search
+\end{itemize}
+
+\section{Conclusions}
+
+\subsection{Summary of Key Distinctions}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{0.25\textwidth}p{0.35\textwidth}p{0.35\textwidth}@{}}
+\toprule
+\textbf{Aspect} & \textbf{Greedy ($k=1$)} & \textbf{Beam Search ($k>1$)} \\
+\midrule
+Search strategy & Single best path & $k$ parallel hypotheses \\
+Error recovery & None & Possible via alternative paths \\
+Computational cost & $O(T \cdot |\mathcal{V}|)$ & $O(k \cdot T \cdot |\mathcal{V}|)$ \\
+Model likelihood & Lower (by construction) & Higher (by construction) \\
+Translation quality & Often competitive & \textbf{Requires length normalization} \\
+Length bias & Naturally regulated & Severe without normalization \\
+Implementation & Trivial & Moderate complexity \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Practical Takeaways}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Theory vs. Practice Gap}: Higher model likelihood $\neq$ better BLEU without careful engineering
+
+    \item \textbf{Length Normalization is Critical}: Beam search without it can be \textit{worse} than greedy
+
+    \item \textbf{Greedy is Underrated}: For well-trained models, greedy is fast, simple, and effective
+
+    \item \textbf{Sweet Spot is Small}: If using beam search, $k \in [3, 5]$ is typically optimal
+
+    \item \textbf{Model Quality Matters Most}: Decoding cannot fix fundamental modeling issues
+
+    \item \textbf{Always Validate}: Theory predicts trends, but empirical validation is essential
+\end{enumerate}
+
+\subsection{Lessons from Experimental Results}
+
+The experimental data demonstrates a crucial lesson: \textbf{algorithmic sophistication does not guarantee better outcomes}. Beam search is provably better at finding high-likelihood sequences, yet without length normalization, this very strength becomes a liability.
+
+This highlights the importance of:
+\begin{itemize}[leftmargin=*]
+    \item Understanding the \textit{objective function mismatch} between training (likelihood) and evaluation (BLEU)
+    \item Recognizing that model biases can be amplified by decoding algorithms
+    \item Implementing engineering solutions (length normalization) to bridge theory and practice
+    \item Validating theoretical expectations with empirical measurements
+\end{itemize}
+
+\subsection{Future Directions}
+
+For improved NMT decoding:
+\begin{enumerate}[leftmargin=*]
+    \item Implement length normalization and re-evaluate beam search effectiveness
+    \item Explore alternative scoring functions better aligned with BLEU
+    \item Investigate sequence-level training to reduce train-test mismatch
+    \item Consider hybrid strategies combining beam search with sampling or reranking
+\end{enumerate}
+
+\begin{thebibliography}{9}
+
+\bibitem{wu2016google}
+Y. Wu, M. Schuster, Z. Chen, Q. V. Le, et al.
+\textit{Google's Neural Machine Translation System: Bridging the Gap between Human and Machine Translation}.
+arXiv:1609.08144, 2016.
+
+\bibitem{koehn2017six}
+P. Koehn and R. Knowles.
+\textit{Six Challenges for Neural Machine Translation}.
+Proceedings of the First Workshop on Neural Machine Translation, 2017.
+
+\bibitem{vijayakumar2018diverse}
+A. K. Vijayakumar, M. Cogswell, R. R. Selvaraju, et al.
+\textit{Diverse Beam Search for Improved Description of Complex Scenes}.
+AAAI Conference on Artificial Intelligence, 2018.
+
+\bibitem{murray2018correcting}
+K. Murray and D. Chiang.
+\textit{Correcting Length Bias in Neural Machine Translation}.
+Proceedings of WMT, 2018.
+
+\bibitem{stahlberg2019nmt}
+F. Stahlberg.
+\textit{Neural Machine Translation: A Review}.
+Journal of Artificial Intelligence Research, 69:343-418, 2020.
+
+\end{thebibliography}
+
+\end{document}

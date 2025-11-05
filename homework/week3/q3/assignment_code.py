@@ -67,7 +67,18 @@ class LSTMCell_assignment(nn.Module):
         ### input_size – The number of expected features in the input x
         ### hidden_size – The number of features in the hidden state h
         ### bias – If False, then the layer does not use bias weights b_ih and b_hh. Default: True
-
+        self.Wii = nn.Linear(input_size, hidden_size, bias) # input gate
+        self.Whi = nn.Linear(hidden_size, hidden_size, bias) # hidden to input gate
+        self.Wif = nn.Linear(input_size, hidden_size, bias) # forget gate
+        self.Whf = nn.Linear(hidden_size, hidden_size, bias) # hidden to forget gate
+        self.Wig = nn.Linear(input_size, hidden_size, bias) # gate gate
+        self.Whg = nn.Linear(hidden_size, hidden_size, bias) # hidden to gate gate
+        self.Wio = nn.Linear(input_size, hidden_size, bias) # output gate
+        self.Who = nn.Linear(hidden_size, hidden_size, bias) # hidden to output gate
+        nn.init.uniform_(self.Wii.weight.data, -1/sqrt(hidden_size), 1/sqrt(hidden_size))
+        nn.init.uniform_(self.Wif.weight.data, -1/sqrt(hidden_size), 1/sqrt(hidden_size))
+        nn.init.uniform_(self.Wig.weight.data, -1/sqrt(hidden_size), 1/sqrt(hidden_size))
+        nn.init.uniform_(self.Wio.weight.data, -1/sqrt(hidden_size), 1/sqrt(hidden_size))
         ### END OF YOUR CODE
 
 
@@ -86,7 +97,12 @@ class LSTMCell_assignment(nn.Module):
         
         ### YOUR CODE HERE (~6 Lines)
         ### TODO - Implement forward prop in LSTM cell. 
-        
+        i_t = torch.sigmoid(self.Wii(x) + self.Whi(h)) # input gate
+        f_t = torch.sigmoid(self.Wif(x) + self.Whf(h)) # forget gate
+        g_t = torch.tanh(self.Wig(x) + self.Whg(h)) # gate gate
+        o_t = torch.sigmoid(self.Wio(x) + self.Who(h)) # output gate
+        c = f_t * c + i_t * g_t
+        h = o_t * torch.tanh(c)
         ### END OF YOUR CODE
 
         return (h, c)

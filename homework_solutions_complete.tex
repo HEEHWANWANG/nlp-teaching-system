@@ -1,0 +1,467 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\geometry{margin=1in}
+
+\title{NLP Homework Assignment - Complete Solutions}
+\author{Student Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Problem 1.2: Dot-Product Attention Exercise}
+
+\subsection*{Given Information}
+Sentence: [cat, on, the, mat]
+
+Embeddings (each $d_k = 3$):
+\begin{align*}
+\mathbf{e}_{\text{cat}} &= \begin{bmatrix} 0.8 \\ 0.1 \\ 0.5 \end{bmatrix}, \quad
+\mathbf{e}_{\text{on}} = \begin{bmatrix} -0.2 \\ 0.3 \\ 0.0 \end{bmatrix} \\
+\mathbf{e}_{\text{the}} &= \begin{bmatrix} 0.1 \\ -0.1 \\ -0.2 \end{bmatrix}, \quad
+\mathbf{e}_{\text{mat}} = \begin{bmatrix} 2.4 \\ 0.3 \\ 1.6 \end{bmatrix}
+\end{align*}
+
+Weight matrices:
+\begin{align*}
+\mathbf{W}_Q &= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix}, \quad
+\mathbf{W}_K = \mathbf{I}_3 = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} \\
+\mathbf{W}_V &= \begin{bmatrix} 0.5 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0.5 \end{bmatrix}
+\end{align*}
+
+Scaling factor: $\sqrt{d_k} = \sqrt{3} \approx 1.732$
+
+\subsection*{(a) Compute Query, Key, and Value Matrices}
+
+For each word $w$, we compute:
+\begin{itemize}
+    \item Query: $\mathbf{q}_w = \mathbf{W}_Q \mathbf{e}_w$
+    \item Key: $\mathbf{k}_w = \mathbf{W}_K \mathbf{e}_w = \mathbf{e}_w$ (since $\mathbf{W}_K = \mathbf{I}_3$)
+    \item Value: $\mathbf{v}_w = \mathbf{W}_V \mathbf{e}_w$
+\end{itemize}
+
+\subsubsection*{Query vectors:}
+
+\textbf{For ``cat'':}
+\begin{align*}
+\mathbf{q}_{\text{cat}} &= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} \begin{bmatrix} 0.8 \\ 0.1 \\ 0.5 \end{bmatrix}
+= \begin{bmatrix} 1(0.8) + 0(0.1) + 0(0.5) \\ 0(0.8) + 0(0.1) + 1(0.5) \\ 0(0.8) + 1(0.1) + 0(0.5) \end{bmatrix} \\
+&= \begin{bmatrix} 0.8 \\ 0.5 \\ 0.1 \end{bmatrix}
+\end{align*}
+
+\textbf{For ``on'':}
+\begin{align*}
+\mathbf{q}_{\text{on}} &= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} \begin{bmatrix} -0.2 \\ 0.3 \\ 0.0 \end{bmatrix}
+= \begin{bmatrix} -0.2 \\ 0.0 \\ 0.3 \end{bmatrix}
+\end{align*}
+
+\textbf{For ``the'':}
+\begin{align*}
+\mathbf{q}_{\text{the}} &= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} \begin{bmatrix} 0.1 \\ -0.1 \\ -0.2 \end{bmatrix}
+= \begin{bmatrix} 0.1 \\ -0.2 \\ -0.1 \end{bmatrix}
+\end{align*}
+
+\textbf{For ``mat'':}
+\begin{align*}
+\mathbf{q}_{\text{mat}} &= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} \begin{bmatrix} 2.4 \\ 0.3 \\ 1.6 \end{bmatrix}
+= \begin{bmatrix} 2.4 \\ 1.6 \\ 0.3 \end{bmatrix}
+\end{align*}
+
+\subsubsection*{Key vectors:}
+
+Since $\mathbf{W}_K = \mathbf{I}_3$, keys equal embeddings:
+\begin{align*}
+\mathbf{k}_{\text{cat}} &= \begin{bmatrix} 0.8 \\ 0.1 \\ 0.5 \end{bmatrix}, \quad
+\mathbf{k}_{\text{on}} = \begin{bmatrix} -0.2 \\ 0.3 \\ 0.0 \end{bmatrix} \\
+\mathbf{k}_{\text{the}} &= \begin{bmatrix} 0.1 \\ -0.1 \\ -0.2 \end{bmatrix}, \quad
+\mathbf{k}_{\text{mat}} = \begin{bmatrix} 2.4 \\ 0.3 \\ 1.6 \end{bmatrix}
+\end{align*}
+
+\subsubsection*{Value vectors:}
+
+\textbf{For ``cat'':}
+\begin{align*}
+\mathbf{v}_{\text{cat}} &= \begin{bmatrix} 0.5 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0.5 \end{bmatrix} \begin{bmatrix} 0.8 \\ 0.1 \\ 0.5 \end{bmatrix}
+= \begin{bmatrix} 0.5(0.8) \\ 1(0.1) \\ 0.5(0.5) \end{bmatrix}
+= \begin{bmatrix} 0.400 \\ 0.100 \\ 0.250 \end{bmatrix}
+\end{align*}
+
+\textbf{For ``on'':}
+\begin{align*}
+\mathbf{v}_{\text{on}} &= \begin{bmatrix} 0.5 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0.5 \end{bmatrix} \begin{bmatrix} -0.2 \\ 0.3 \\ 0.0 \end{bmatrix}
+= \begin{bmatrix} -0.100 \\ 0.300 \\ 0.000 \end{bmatrix}
+\end{align*}
+
+\textbf{For ``the'':}
+\begin{align*}
+\mathbf{v}_{\text{the}} &= \begin{bmatrix} 0.5 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0.5 \end{bmatrix} \begin{bmatrix} 0.1 \\ -0.1 \\ -0.2 \end{bmatrix}
+= \begin{bmatrix} 0.050 \\ -0.100 \\ -0.100 \end{bmatrix}
+\end{align*}
+
+\textbf{For ``mat'':}
+\begin{align*}
+\mathbf{v}_{\text{mat}} &= \begin{bmatrix} 0.5 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0.5 \end{bmatrix} \begin{bmatrix} 2.4 \\ 0.3 \\ 1.6 \end{bmatrix}
+= \begin{bmatrix} 1.200 \\ 0.300 \\ 0.800 \end{bmatrix}
+\end{align*}
+
+\textbf{Summary:}
+\begin{align*}
+\mathbf{Q} &= \begin{bmatrix} 0.8 & -0.2 & 0.1 & 2.4 \\ 0.5 & 0.0 & -0.2 & 1.6 \\ 0.1 & 0.3 & -0.1 & 0.3 \end{bmatrix}^T \\
+\mathbf{K} &= \begin{bmatrix} 0.8 & -0.2 & 0.1 & 2.4 \\ 0.1 & 0.3 & -0.1 & 0.3 \\ 0.5 & 0.0 & -0.2 & 1.6 \end{bmatrix}^T \\
+\mathbf{V} &= \begin{bmatrix} 0.400 & -0.100 & 0.050 & 1.200 \\ 0.100 & 0.300 & -0.100 & 0.300 \\ 0.250 & 0.000 & -0.100 & 0.800 \end{bmatrix}^T
+\end{align*}
+
+\subsection*{(b) Compute Raw and Scaled Attention Scores for Query ``cat''}
+
+The raw attention score is the dot product: $s(\text{cat} \to w) = \mathbf{q}_{\text{cat}}^T \mathbf{k}_w$
+
+\textbf{Raw scores:}
+
+\begin{align*}
+s(\text{cat} \to \text{cat}) &= \mathbf{q}_{\text{cat}}^T \mathbf{k}_{\text{cat}} = [0.8, 0.5, 0.1] \cdot [0.8, 0.1, 0.5] \\
+&= 0.8(0.8) + 0.5(0.1) + 0.1(0.5) \\
+&= 0.64 + 0.05 + 0.05 = \boxed{0.740}
+\end{align*}
+
+\begin{align*}
+s(\text{cat} \to \text{on}) &= \mathbf{q}_{\text{cat}}^T \mathbf{k}_{\text{on}} = [0.8, 0.5, 0.1] \cdot [-0.2, 0.3, 0.0] \\
+&= 0.8(-0.2) + 0.5(0.3) + 0.1(0.0) \\
+&= -0.16 + 0.15 + 0.0 = \boxed{-0.010}
+\end{align*}
+
+\begin{align*}
+s(\text{cat} \to \text{the}) &= \mathbf{q}_{\text{cat}}^T \mathbf{k}_{\text{the}} = [0.8, 0.5, 0.1] \cdot [0.1, -0.1, -0.2] \\
+&= 0.8(0.1) + 0.5(-0.1) + 0.1(-0.2) \\
+&= 0.08 - 0.05 - 0.02 = \boxed{0.010}
+\end{align*}
+
+\begin{align*}
+s(\text{cat} \to \text{mat}) &= \mathbf{q}_{\text{cat}}^T \mathbf{k}_{\text{mat}} = [0.8, 0.5, 0.1] \cdot [2.4, 0.3, 1.6] \\
+&= 0.8(2.4) + 0.5(0.3) + 0.1(1.6) \\
+&= 1.92 + 0.15 + 0.16 = \boxed{2.230}
+\end{align*}
+
+\textbf{Scaled scores (divide by $\sqrt{3} \approx 1.732$):}
+
+\begin{align*}
+s_{\text{scaled}}(\text{cat} \to \text{cat}) &= \frac{0.740}{1.732} = \boxed{0.427} \\
+s_{\text{scaled}}(\text{cat} \to \text{on}) &= \frac{-0.010}{1.732} = \boxed{-0.006} \\
+s_{\text{scaled}}(\text{cat} \to \text{the}) &= \frac{0.010}{1.732} = \boxed{0.006} \\
+s_{\text{scaled}}(\text{cat} \to \text{mat}) &= \frac{2.230}{1.732} = \boxed{1.288}
+\end{align*}
+
+\subsection*{(c) Apply Softmax to Scaled Logits}
+
+The softmax function is: $\alpha_{ij} = \frac{\exp(s_{\text{scaled}, i})}{\sum_{k} \exp(s_{\text{scaled}, k})}$
+
+First, compute exponentials:
+\begin{align*}
+\exp(0.427) &= 1.532 \\
+\exp(-0.006) &= 0.994 \\
+\exp(0.006) &= 1.006 \\
+\exp(1.288) &= 3.625
+\end{align*}
+
+Sum of exponentials:
+\[Z = 1.532 + 0.994 + 1.006 + 3.625 = 7.157\]
+
+\textbf{Attention weights:}
+\begin{align*}
+\alpha(\text{cat} \to \text{cat}) &= \frac{1.532}{7.157} = \boxed{0.214} \\
+\alpha(\text{cat} \to \text{on}) &= \frac{0.994}{7.157} = \boxed{0.139} \\
+\alpha(\text{cat} \to \text{the}) &= \frac{1.006}{7.157} = \boxed{0.141} \\
+\alpha(\text{cat} \to \text{mat}) &= \frac{3.625}{7.157} = \boxed{0.506}
+\end{align*}
+
+\textbf{Verification:} $0.214 + 0.139 + 0.141 + 0.506 = 1.000$ ✓
+
+\subsection*{(d) Explain the Effect of Scaling}
+
+\textbf{Purpose of scaling by $\sqrt{d_k}$:}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Prevents gradient vanishing:} Without scaling, as dimensionality $d_k$ increases, dot products grow larger in magnitude. For large $d_k$, the softmax function receives extreme values, causing gradients to become very small (approaching zero) in the flat regions of the exponential function.
+
+    \item \textbf{Stabilizes softmax:} Scaling keeps the variance of dot products approximately constant (near 1) regardless of dimensionality. This prevents one attention score from dominating all others.
+
+    \item \textbf{Comparison in this example:}
+    \begin{itemize}
+        \item \textbf{Without scaling:} Raw scores range from $-0.010$ to $2.230$ (range: 2.24)
+        \item \textbf{With scaling:} Scaled scores range from $-0.006$ to $1.288$ (range: 1.29)
+    \end{itemize}
+
+    \item \textbf{Impact on attention distribution:}
+
+    Let's compute softmax without scaling for comparison:
+    \begin{align*}
+    \exp(0.740) &= 2.096, \quad \exp(-0.010) = 0.990 \\
+    \exp(0.010) &= 1.010, \quad \exp(2.230) = 9.300 \\
+    Z_{\text{unscaled}} &= 2.096 + 0.990 + 1.010 + 9.300 = 13.396
+    \end{align*}
+
+    Unscaled attention weights:
+    \begin{align*}
+    \alpha_{\text{unscaled}}(\text{cat} \to \text{cat}) &= \frac{2.096}{13.396} = 0.156 \\
+    \alpha_{\text{unscaled}}(\text{cat} \to \text{on}) &= \frac{0.990}{13.396} = 0.074 \\
+    \alpha_{\text{unscaled}}(\text{cat} \to \text{the}) &= \frac{1.010}{13.396} = 0.075 \\
+    \alpha_{\text{unscaled}}(\text{cat} \to \text{mat}) &= \frac{9.300}{13.396} = 0.694
+    \end{align*}
+
+    \item \textbf{Observation:} Without scaling, the attention weight on ``mat'' increases from 0.506 to 0.694 (much more concentrated). Scaling produces a \textit{smoother distribution}, allowing the model to attend to multiple positions more effectively.
+
+    \item \textbf{Mathematical justification:} If query and key vectors have independent components with mean 0 and variance 1, then their dot product has variance $d_k$. Dividing by $\sqrt{d_k}$ normalizes the variance back to 1, maintaining stable gradients.
+\end{enumerate}
+
+\newpage
+
+\section*{Problem 2: LSTM Backpropagation}
+
+\subsection*{Background}
+
+Recall the LSTM equations at time step $t$:
+\begin{align*}
+\mathbf{i}_t &= \sigma(\mathbf{U}^{(i)} \mathbf{x}_t + \mathbf{W}^{(i)} \mathbf{h}_{t-1} + \mathbf{b}^{(i)}) \quad \text{(input gate)} \\
+\mathbf{f}_t &= \sigma(\mathbf{U}^{(f)} \mathbf{x}_t + \mathbf{W}^{(f)} \mathbf{h}_{t-1} + \mathbf{b}^{(f)}) \quad \text{(forget gate)} \\
+\mathbf{o}_t &= \sigma(\mathbf{U}^{(o)} \mathbf{x}_t + \mathbf{W}^{(o)} \mathbf{h}_{t-1} + \mathbf{b}^{(o)}) \quad \text{(output gate)} \\
+\tilde{\mathbf{c}}_t &= \tanh(\mathbf{U}^{(c)} \mathbf{x}_t + \mathbf{W}^{(c)} \mathbf{h}_{t-1} + \mathbf{b}^{(c)}) \quad \text{(candidate cell state)} \\
+\mathbf{c}_t &= \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t \quad \text{(cell state)} \\
+\mathbf{h}_t &= \mathbf{o}_t \odot \tanh(\mathbf{c}_t) \quad \text{(hidden state)}
+\end{align*}
+
+where $\sigma$ is the sigmoid function, $\odot$ denotes element-wise multiplication, and $\mathbf{U}^{(\cdot)}, \mathbf{W}^{(\cdot)}$ are weight matrices.
+
+\subsection*{(a) Derive Gradient $\frac{\partial J}{\partial \mathbf{U}^{(c)}}$ Using Chain Rule}
+
+Let $J$ be the loss function. We want to compute $\frac{\partial J}{\partial \mathbf{U}^{(c)}}$ at a specific time step $t$.
+
+\subsubsection*{Step 1: Identify the computational path}
+
+The parameter $\mathbf{U}^{(c)}$ appears in:
+\[\tilde{\mathbf{c}}_t = \tanh(\mathbf{U}^{(c)} \mathbf{x}_t + \mathbf{W}^{(c)} \mathbf{h}_{t-1} + \mathbf{b}^{(c)})\]
+
+Let $\mathbf{z}_t^{(c)} = \mathbf{U}^{(c)} \mathbf{x}_t + \mathbf{W}^{(c)} \mathbf{h}_{t-1} + \mathbf{b}^{(c)}$ (pre-activation)
+
+Then: $\tilde{\mathbf{c}}_t = \tanh(\mathbf{z}_t^{(c)})$
+
+The loss $J$ depends on $\mathbf{U}^{(c)}$ through the following chain:
+\[\mathbf{U}^{(c)} \to \mathbf{z}_t^{(c)} \to \tilde{\mathbf{c}}_t \to \mathbf{c}_t \to \mathbf{h}_t \to J\]
+
+Additionally, $\mathbf{c}_t$ affects future time steps, so we need to consider:
+\[\mathbf{c}_t \to \mathbf{c}_{t+1} \to \cdots \to \mathbf{c}_T \to J\]
+
+\subsubsection*{Step 2: Apply chain rule}
+
+Using the chain rule:
+\begin{align}
+\frac{\partial J}{\partial \mathbf{U}^{(c)}} &= \frac{\partial J}{\partial \mathbf{z}_t^{(c)}} \frac{\partial \mathbf{z}_t^{(c)}}{\partial \mathbf{U}^{(c)}} \label{eq:chain1}
+\end{align}
+
+We need to compute both terms.
+
+\subsubsection*{Step 3: Compute $\frac{\partial \mathbf{z}_t^{(c)}}{\partial \mathbf{U}^{(c)}}$}
+
+From $\mathbf{z}_t^{(c)} = \mathbf{U}^{(c)} \mathbf{x}_t + \mathbf{W}^{(c)} \mathbf{h}_{t-1} + \mathbf{b}^{(c)}$:
+\begin{align}
+\frac{\partial \mathbf{z}_t^{(c)}}{\partial \mathbf{U}^{(c)}} &= \mathbf{x}_t^T \label{eq:dz_dU}
+\end{align}
+
+(For element $(i,j)$: $\frac{\partial z_i}{\partial U_{ij}} = x_j$, or in matrix form: $\frac{\partial \mathbf{z}_t^{(c)}}{\partial \mathbf{U}^{(c)}} = \mathbf{x}_t \mathbf{1}^T$ where the outer product gives the gradient)
+
+\subsubsection*{Step 4: Compute $\frac{\partial J}{\partial \mathbf{z}_t^{(c)}}$}
+
+This requires backpropagation through time. We use:
+\begin{align}
+\frac{\partial J}{\partial \mathbf{z}_t^{(c)}} &= \frac{\partial J}{\partial \tilde{\mathbf{c}}_t} \frac{\partial \tilde{\mathbf{c}}_t}{\partial \mathbf{z}_t^{(c)}} \label{eq:dJ_dz}
+\end{align}
+
+From $\tilde{\mathbf{c}}_t = \tanh(\mathbf{z}_t^{(c)})$:
+\begin{align}
+\frac{\partial \tilde{\mathbf{c}}_t}{\partial \mathbf{z}_t^{(c)}} &= \text{diag}(1 - \tanh^2(\mathbf{z}_t^{(c)})) = \text{diag}(1 - \tilde{\mathbf{c}}_t^2) \label{eq:dtilde_dz}
+\end{align}
+
+Now we need $\frac{\partial J}{\partial \tilde{\mathbf{c}}_t}$. From the cell state equation:
+\[\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t\]
+
+We have:
+\begin{align}
+\frac{\partial J}{\partial \tilde{\mathbf{c}}_t} &= \frac{\partial J}{\partial \mathbf{c}_t} \frac{\partial \mathbf{c}_t}{\partial \tilde{\mathbf{c}}_t} = \frac{\partial J}{\partial \mathbf{c}_t} \odot \mathbf{i}_t \label{eq:dJ_dtilde}
+\end{align}
+
+\subsubsection*{Step 5: Compute $\frac{\partial J}{\partial \mathbf{c}_t}$ (BPTT)}
+
+The gradient $\frac{\partial J}{\partial \mathbf{c}_t}$ comes from two sources:
+\begin{enumerate}
+    \item Direct contribution through $\mathbf{h}_t$
+    \item Contribution from future time step $\mathbf{c}_{t+1}$
+\end{enumerate}
+
+\begin{align}
+\frac{\partial J}{\partial \mathbf{c}_t} &= \frac{\partial J}{\partial \mathbf{h}_t} \frac{\partial \mathbf{h}_t}{\partial \mathbf{c}_t} + \frac{\partial J}{\partial \mathbf{c}_{t+1}} \frac{\partial \mathbf{c}_{t+1}}{\partial \mathbf{c}_t} \label{eq:dJ_dc}
+\end{align}
+
+From $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$:
+\begin{align}
+\frac{\partial \mathbf{h}_t}{\partial \mathbf{c}_t} &= \mathbf{o}_t \odot (1 - \tanh^2(\mathbf{c}_t)) \label{eq:dh_dc}
+\end{align}
+
+From $\mathbf{c}_{t+1} = \mathbf{f}_{t+1} \odot \mathbf{c}_t + \mathbf{i}_{t+1} \odot \tilde{\mathbf{c}}_{t+1}$:
+\begin{align}
+\frac{\partial \mathbf{c}_{t+1}}{\partial \mathbf{c}_t} &= \mathbf{f}_{t+1} \label{eq:dc_dc}
+\end{align}
+
+\subsubsection*{Step 6: Complete gradient expression}
+
+Combining all components:
+\begin{align}
+\frac{\partial J}{\partial \mathbf{U}^{(c)}} &= \left( \frac{\partial J}{\partial \tilde{\mathbf{c}}_t} \odot (1 - \tilde{\mathbf{c}}_t^2) \right) \mathbf{x}_t^T \label{eq:final_grad}
+\end{align}
+
+where:
+\begin{align}
+\frac{\partial J}{\partial \tilde{\mathbf{c}}_t} &= \frac{\partial J}{\partial \mathbf{c}_t} \odot \mathbf{i}_t \\
+\frac{\partial J}{\partial \mathbf{c}_t} &= \frac{\partial J}{\partial \mathbf{h}_t} \odot \mathbf{o}_t \odot (1 - \tanh^2(\mathbf{c}_t)) + \frac{\partial J}{\partial \mathbf{c}_{t+1}} \odot \mathbf{f}_{t+1}
+\end{align}
+
+\textbf{Complete derivation summary:}
+
+\begin{align*}
+\boxed{
+\frac{\partial J}{\partial \mathbf{U}^{(c)}} = \left[ \left( \frac{\partial J}{\partial \mathbf{h}_t} \odot \mathbf{o}_t \odot (1 - \tanh^2(\mathbf{c}_t)) + \frac{\partial J}{\partial \mathbf{c}_{t+1}} \odot \mathbf{f}_{t+1} \right) \odot \mathbf{i}_t \odot (1 - \tilde{\mathbf{c}}_t^2) \right] \mathbf{x}_t^T
+}
+\end{align*}
+
+This gradient must be summed across all time steps in the sequence:
+\[\frac{\partial J}{\partial \mathbf{U}^{(c)}} = \sum_{t=1}^{T} \frac{\partial J_t}{\partial \mathbf{U}^{(c)}}\]
+
+\subsection*{(b) Explain Which LSTM Factors Mitigate Vanishing Gradient}
+
+The LSTM architecture includes several mechanisms that mitigate the vanishing gradient problem:
+
+\subsubsection*{1. Additive Cell State Update (Primary Factor)}
+
+The cell state update is:
+\[\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t\]
+
+This is an \textbf{additive} combination, not purely multiplicative like in vanilla RNNs.
+
+\textbf{Gradient flow:}
+\[\frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-1}} = \mathbf{f}_t\]
+
+The gradient can flow through time via the forget gate \textit{without} repeated matrix multiplications. In vanilla RNNs, gradients are multiplied by $\mathbf{W}^T$ at each time step:
+\[\frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_{t-1}} = \mathbf{W}^T \text{diag}(\sigma'(\cdot))\]
+
+If eigenvalues of $\mathbf{W}$ are $< 1$, gradients vanish exponentially: $\|\frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_{t-k}}\| \approx \|\mathbf{W}\|^k \to 0$ as $k \to \infty$.
+
+\textbf{LSTM advantage:} The forget gate $\mathbf{f}_t$ is learned and can be close to 1, allowing gradients to flow nearly unchanged through many time steps:
+\[\frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-k}} = \prod_{j=t-k+1}^{t} \mathbf{f}_j\]
+
+If $\mathbf{f}_j \approx 1$, the product $\approx 1^k = 1$ (no vanishing).
+
+\subsubsection*{2. Gating Mechanisms (Forget, Input, Output Gates)}
+
+\textbf{Forget gate} $\mathbf{f}_t$:
+\begin{itemize}
+    \item Controls what information to keep from $\mathbf{c}_{t-1}$
+    \item When $\mathbf{f}_t \approx 1$: preserves cell state, gradients flow undiminished
+    \item When $\mathbf{f}_t \approx 0$: resets cell state, prevents error accumulation
+    \item \textit{Learned adaptively} based on input and previous hidden state
+\end{itemize}
+
+\textbf{Input gate} $\mathbf{i}_t$:
+\begin{itemize}
+    \item Controls what new information to add to cell state
+    \item Allows selective updates, preventing constant interference with stored information
+    \item Gradient flows through $\mathbf{i}_t$ when updating: $\frac{\partial \mathbf{c}_t}{\partial \tilde{\mathbf{c}}_t} = \mathbf{i}_t$
+\end{itemize}
+
+\textbf{Output gate} $\mathbf{o}_t$:
+\begin{itemize}
+    \item Controls what information from cell state goes to hidden state
+    \item Decouples cell state (long-term memory) from hidden state (short-term output)
+    \item Prevents unnecessary exposure of internal memory to output transformations
+\end{itemize}
+
+\subsubsection*{3. Constant Error Carousel (CEC)}
+
+The cell state $\mathbf{c}_t$ acts as a "conveyor belt" carrying information across time with minimal modification:
+\begin{itemize}
+    \item Direct path from $\mathbf{c}_{t-1}$ to $\mathbf{c}_t$ via additive update
+    \item No activation function applied to $\mathbf{c}_{t-1}$ component (only to $\tilde{\mathbf{c}}_t$)
+    \item Gradients can flow back through many time steps without repeated nonlinearities
+\end{itemize}
+
+In vanilla RNN: $\mathbf{h}_t = \tanh(\mathbf{W} \mathbf{h}_{t-1} + \mathbf{U} \mathbf{x}_t)$
+\begin{itemize}
+    \item Gradient: $\frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_{t-1}} = \mathbf{W}^T \text{diag}(1 - \tanh^2(\cdot))$
+    \item Both matrix multiplication \textit{and} activation derivative compound over time
+\end{itemize}
+
+LSTM cell state gradient: $\frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-1}} = \mathbf{f}_t$ (no activation derivative!)
+
+\subsubsection*{4. Separate Memory and Output Paths}
+
+\textbf{Cell state} ($\mathbf{c}_t$): Long-term memory storage
+\begin{itemize}
+    \item Updated additively with gating
+    \item Minimal transformations preserve gradient flow
+\end{itemize}
+
+\textbf{Hidden state} ($\mathbf{h}_t$): Short-term output representation
+\begin{itemize}
+    \item Derived from $\mathbf{c}_t$ via $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$
+    \item Allows complex output transformations without affecting gradient flow through $\mathbf{c}_t$
+\end{itemize}
+
+\subsubsection*{5. Adaptive Learning of Time Dependencies}
+
+The gates are \textbf{learned functions} of input and previous hidden state:
+\[\mathbf{f}_t = \sigma(\mathbf{U}^{(f)} \mathbf{x}_t + \mathbf{W}^{(f)} \mathbf{h}_{t-1} + \mathbf{b}^{(f)})\]
+
+The network learns:
+\begin{itemize}
+    \item \textit{When} to remember (large $\mathbf{f}_t$, small $\mathbf{i}_t$): preserves gradients
+    \item \textit{When} to forget (small $\mathbf{f}_t$): prevents error accumulation
+    \item \textit{What} to output (via $\mathbf{o}_t$): task-relevant information
+\end{itemize}
+
+This adaptive mechanism allows the LSTM to learn dependencies over hundreds of time steps, while vanilla RNNs struggle beyond 10-20 steps.
+
+\subsubsection*{Quantitative Comparison}
+
+Consider gradient flow over $k$ time steps:
+
+\textbf{Vanilla RNN:}
+\[\left\| \frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_{t-k}} \right\| \leq \|\mathbf{W}\|^k \cdot \prod_{j=1}^{k} \|\text{diag}(\sigma'(\cdot))\|\]
+
+If $\|\mathbf{W}\| < 1$ and $\max(\sigma'(\cdot)) \leq 0.25$ (for sigmoid/tanh), then:
+\[\left\| \frac{\partial \mathbf{h}_t}{\partial \mathbf{h}_{t-k}} \right\| \leq (0.9)^k \cdot (0.25)^k = (0.225)^k\]
+
+For $k = 10$: $(0.225)^{10} \approx 10^{-6}$ (severe vanishing)
+
+\textbf{LSTM:}
+\[\left\| \frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-k}} \right\| = \left\| \prod_{j=t-k+1}^{t} \mathbf{f}_j \right\|\]
+
+If $\mathbf{f}_j \approx 1$ (learned to preserve information):
+\[\left\| \frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-k}} \right\| \approx 1\]
+
+Gradients can flow without vanishing over hundreds of time steps.
+
+\subsubsection*{Summary}
+
+\textbf{Key factors mitigating vanishing gradients in LSTMs:}
+\begin{enumerate}
+    \item \textbf{Additive cell state updates} → linear gradient flow path
+    \item \textbf{Forget gate near 1} → preserves gradient magnitude
+    \item \textbf{Gating mechanisms} → adaptive control of information flow
+    \item \textbf{Constant Error Carousel} → direct path without repeated nonlinearities
+    \item \textbf{Separate memory/output} → protects gradient flow from output transformations
+\end{enumerate}
+
+The combination of these factors allows LSTMs to learn dependencies over much longer sequences (100-200+ time steps) compared to vanilla RNNs (10-20 time steps).
+
+\end{document}
